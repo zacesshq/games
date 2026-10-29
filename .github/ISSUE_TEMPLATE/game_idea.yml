@@ -16,12 +16,12 @@ body:
         - Drift
         - Rooms
         - Relay
-        - Football
-        - Racing
-        - Typing
-        - Arcade shooter
-        - Learn to code
-        - Touch typing
+        - Through Ball
+        - Slipstream
+        - Array Guard
+        - Heatsink
+        - Touch Typing
+        - Learn to Code
     validations:
       required: true
   - type: input

@@ -16,32 +16,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  detect:
-    # the games' code arrives later, so every Rust job is skipped until a Cargo.toml exists
-    name: Look for a Cargo project
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      cargo: ${{ steps.find.outputs.cargo }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - id: find
-        env:
-          FOUND: ${{ hashFiles('Cargo.toml') != '' }}
-        run: |
-          echo "cargo=$FOUND" >> "$GITHUB_OUTPUT"
-          if [ "$FOUND" = "true" ]; then
-            echo "Cargo.toml found, so the Rust checks run."
-          else
-            echo "No Cargo.toml yet, so the Rust checks are skipped."
-          fi
-
   check:
     name: ${{ matrix.name }}
-    needs: detect
-    if: needs.detect.outputs.cargo == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -66,14 +42,36 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      - name: Check the stills are current
+        if: runner.os == 'Linux'
+        run: |
+          ./scripts/snapshots.sh
+          git status --porcelain docs/images
+          git diff --exit-code docs/images
+          test -z "$(git status --porcelain docs/images)"
+      - name: Play every game without a terminal
+        shell: bash
+        run: |
+          cargo build -q
+          bin=target/debug/zacess-games
+          [ -x "$bin" ] || bin="$bin.exe"
+          export ZACESS_GAMES_STATE="$PWD/target/ci-state"
+          export ZACESS_GAMES_NO_USER_LEVELS=1
+          "$bin" --version
+          for game in $("$bin" list | awk '{print $1}'); do
+            for size in 60x20 100x30 160x45; do
+              screen=$("$bin" --headless "$game" --keys right,enter,wait:1 --size "$size" --seed 1)
+              [ -n "$screen" ] || { echo "$game at $size drew nothing"; exit 1; }
+            done
+            echo "::group::$game at 100x30"
+            "$bin" --headless "$game" --size 100x30 --seed 1
+            echo "::endgroup::"
+          done
 
   release-targets:
-    # the release builds compile Lua from source with each target's C compiler, so the targets
-    # that differ most from the check jobs are built on each pull request rather than first
-    # meeting them at a release
+    # the release builds compile Lua from source with each target's C compiler, so every
+    # target is built on each pull request rather than first meeting it at a release
     name: Release build ${{ matrix.target }}
-    needs: detect
-    if: needs.detect.outputs.cargo == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -103,3 +101,18 @@ jobs:
         with:
           key: ${{ matrix.target }}
       - run: cargo build --release --locked --target ${{ matrix.target }}
+
+  msrv:
+    name: Minimum Rust version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # the rust-version in Cargo.toml, so a newer standard library API cannot slip in unseen
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: "1.88"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo check --locked --all-targets

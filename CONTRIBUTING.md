@@ -27,9 +27,24 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-CI runs the same three on Linux, macOS and Windows and builds the static Linux and Intel macOS
-release targets, since Lua is compiled from source for each one. Every markdown file is linted with
-the rules in `.markdownlint.json`:
+CI runs the same three on Linux, macOS and Windows, plays every game without a terminal at three
+sizes and builds the static Linux and Intel macOS release targets, since Lua is compiled from
+source for each one. It also checks the crate on Rust 1.88, the `rust-version` in `Cargo.toml`.
+
+The stills in `docs/images` are drawn by the program. After a change to how a game looks, make them
+again and commit the result, since CI fails when they differ:
+
+```sh
+./scripts/snapshots.sh
+```
+
+A single game can be played without a terminal to see a frame as text:
+
+```sh
+cargo run -- --headless relay --keys right,right --size 100x30
+```
+
+Every markdown file is linted with the rules in `.markdownlint.json`:
 
 ```sh
 npx markdownlint-cli2 "**/*.md" "#target"
@@ -39,20 +54,25 @@ npx markdownlint-cli2 "**/*.md" "#target"
 
 A game is ready to merge when it has all of the following:
 
-1. **The game itself**, built on [Zacess Scenes](https://github.com/zacesshq/scenes) so it draws
-   with theme roles and never with a fixed colour. Its levels live in Lua files beside the code.
+1. **The game itself**, a file in `src/games` that implements the `Game` trait in `src/game.rs`
+   and joins the list in `src/games/mod.rs`. It draws with the theme roles of
+   [Zacess Scenes](https://github.com/zacesshq/scenes) and never with a fixed colour. Any levels
+   live in Lua files under `levels/`.
 2. **The shared keys**, exactly as [docs/controls.md](docs/controls.md) lists them: `Space`
-   pauses, `?` opens how to play, the effects volume, the music volume and mute work the same way
-   and `Esc` or `Ctrl+C` quits and gives the terminal back.
-3. **A how-to-play page** behind `?`, written in plain words: the goal, the keys and how a round
-   ends. The same text goes into its section of [docs/how-to-play.md](docs/how-to-play.md).
+   pauses, `?` opens how to play, the sound keys work the same way, `Esc` goes back to the menu
+   and `Ctrl+C` leaves and gives the terminal back. A game where every key types moves pause to
+   `Esc` and how to play to `F1`, as the typing games do.
+3. **A how-to-play page** behind `?`, written in plain words: the goal, the rules, the scoring, how
+   the game is won or lost, a tip and the keys. The same text goes into its section of [docs/how-to-play.md](docs/how-to-play.md).
 4. **Tests** that hold what [ACCESSIBILITY.md](ACCESSIBILITY.md) requires: every colour keeps the
    theme's floor in all eight themes, nothing flashes, reduced motion slows or stills the game and
    the game can be paused at any moment. A game that runs on a timer also needs a test that a
    paused game never loses time.
-5. **Documentation**: its row in the README's planned games table moves to its new status, its
-   section in each guide replaces "coming", its name goes into the game lists in the three issue
-   forms and the changelog's `Unreleased` section says what arrived.
+5. **Documentation**: a row and a still in the README's games tables, its section in
+   [docs/how-to-play.md](docs/how-to-play.md), its keys in [docs/controls.md](docs/controls.md),
+   its signals in [ACCESSIBILITY.md](ACCESSIBILITY.md), its name in the game lists of the three
+   issue forms, its stills from `scripts/snapshots.sh` and an entry in the changelog's
+   `Unreleased` section.
 
 > [!IMPORTANT]
 > Nothing may flash. Nothing that changes in place may change a cell more than three times a

@@ -6,7 +6,7 @@ body:
     id: game
     attributes:
       label: Game
-      description: The games are listed as they are planned; pick the one you were playing.
+      description: Pick the game you were playing.
       multiple: true
       options:
         - Stackline
@@ -17,12 +17,12 @@ body:
         - Drift
         - Rooms
         - Relay
-        - Football
-        - Racing
-        - Typing
-        - Arcade shooter
-        - Learn to code
-        - Touch typing
+        - Through Ball
+        - Slipstream
+        - Array Guard
+        - Heatsink
+        - Touch Typing
+        - Learn to Code
         - A Lua level of my own
         - Every game
         - Not about a game
