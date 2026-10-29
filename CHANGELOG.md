@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
 ### Added
 
 - Showcase recordings of all fourteen games in `docs/frames`, seven seconds of real play each at ten frames a second, 80 by 24, in Zacess Deep Contrast Dark. They are JSON in the same format as the Zacess Scenes showcase frames, so the website plays them with the same player as the scenes. Stackline clears a row, Merge Gates combines tiles into the target, Termle solves the daily term, Signal catches notes on the beat, Trace wires two levels, Drift gathers motes, Rooms fetches a part and fixes a fault, Relay passes a timed gate, Through Ball passes and scores, Slipstream takes a pit stop, Array Guard clears debris, Heatsink and Touch Typing are typed and Learn to Code fills in a blank.
@@ -32,5 +34,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - `docs/how-to-play.md` and `docs/controls.md` for every game and every key, flag, variable and setting, with 47 stills in `docs/images` that `scripts/snapshots.sh` makes again from the program.
 - CI: markdown linting, formatting, Clippy, the tests and a headless run of every game on Linux, macOS and Windows, a check that the stills are current, the release target builds, a check on the minimum Rust version (1.88) and a release workflow that attaches built binaries to the release a maintainer makes from a signed tag.
 
-[Unreleased]: https://github.com/zacesshq/games/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zacesshq/games/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/zacesshq/games/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zacesshq/games/releases/tag/v0.1.0
