@@ -1,0 +1,72 @@
+name: Game idea
+description: A new game, a new level or something an existing game should do.
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: game
+    attributes:
+      label: Which game
+      options:
+        - A new game
+        - Stackline
+        - Merge Gates
+        - Termle
+        - Signal
+        - Trace
+        - Drift
+        - Rooms
+        - Relay
+        - Football
+        - Racing
+        - Typing
+        - Arcade shooter
+        - Learn to code
+        - Touch typing
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Short name
+      description: A working name for a new game. For an existing game, the level or feature.
+      placeholder: lighthouse keeper
+    validations:
+      required: true
+  - type: textarea
+    id: play
+    attributes:
+      label: How it plays
+      description: The goal, the keys and how a round ends. Characters you have in mind for the screen are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: calm
+    attributes:
+      label: Under reduced motion
+      description: What slows down, stays still or is left out when motion is reduced. Nothing may flash and nothing that changes in place may change more than three times a second.
+    validations:
+      required: true
+  - type: textarea
+    id: sound
+    attributes:
+      label: Sound and music
+      description: The sound effects and music it would have. Say what shows on screen at the same moment as each sound, since sound is never the only signal.
+  - type: textarea
+    id: time
+    attributes:
+      label: Speed and time
+      description: Whether it has a timer or a speed. Say how it would work for someone who needs more time.
+  - type: textarea
+    id: small
+    attributes:
+      label: On a small terminal
+      description: What it looks like on a small terminal, such as 40 columns by 12 rows.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: The idea is original and does not copy another game's art, levels or text.
+          required: true
+        - label: I checked existing issues for the same idea.
+          required: true
