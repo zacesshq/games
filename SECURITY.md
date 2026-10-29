@@ -28,8 +28,7 @@ In scope:
 
 ## Supported versions
 
-No version has been released yet. Once one has, only the latest release and the latest commit on
-`main` receive security fixes.
+Only the latest release and the latest commit on `main` receive security fixes.
 
 ## Reporting a vulnerability
 

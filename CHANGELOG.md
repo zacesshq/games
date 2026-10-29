@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-29
+
 ### Added
 
 - The repository's groundwork: the README, the MIT licence and a licensing notice for the Zacess name and mark, the accessibility requirements every game has to meet, the contributing guide, the security policy, the support guide and the code of conduct.
@@ -18,4 +20,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - `docs/how-to-play.md` and `docs/controls.md` for every game and every key, flag, variable and setting, with 47 stills in `docs/images` that `scripts/snapshots.sh` makes again from the program.
 - CI: markdown linting, formatting, Clippy, the tests and a headless run of every game on Linux, macOS and Windows, a check that the stills are current, the release target builds, a check on the minimum Rust version (1.88) and a release workflow that attaches built binaries to the release a maintainer makes from a signed tag.
 
-[Unreleased]: https://github.com/zacesshq/games/commits/main
+[Unreleased]: https://github.com/zacesshq/games/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/zacesshq/games/releases/tag/v0.1.0

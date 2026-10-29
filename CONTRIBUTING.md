@@ -97,8 +97,8 @@ event has a matching change on screen, so nothing is heard without also being se
 ## Releasing
 
 1. Bump the version in `Cargo.toml` (and `Cargo.lock` by running `cargo build`), move the
-   changelog's `Unreleased` entries into a section for the version and merge that through a pull
-   request.
+   changelog's `Unreleased` entries into a section for the version, move the README's install tag
+   and checksum example to the new tag and merge that through a pull request.
 2. A maintainer tags the merged commit with a signed annotated tag, pushes it and creates the
    GitHub release from the tag with that version's changelog section as the notes.
 3. The tag runs [`release.yml`](.github/workflows/release.yml), which builds the binaries for every
