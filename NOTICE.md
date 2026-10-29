@@ -32,7 +32,24 @@ game's art, levels or text.
 
 ## Dependencies
 
-Each game's crates and their licences are listed here when its code arrives.
+The released binary is built from these crates, each linked in rather than bundled as a file:
+
+| Crate | Used for | Licence |
+| --- | --- | --- |
+| zacess-scenes | The themes, the palette roles with their contrast floors, the flash meter, the motion settings, frames and SVG stills | MIT |
+| crossterm | Raw mode, the alternate screen, colours and keys | MIT |
+| signal-hook (Unix only) | Restoring the terminal on a termination signal | MIT or Apache-2.0 |
+| mlua | Running the Lua levels in a sandbox | MIT |
+| lua-src | The Lua 5.4 source, compiled into the binary so nothing needs installing | MIT |
+
+mlua also links a few small crates of its own (bstr, either, memchr, num-traits, parking_lot,
+rustc-hash and smallvec, with their own dependencies), each under MIT or Apache-2.0 at the
+user's choice; memchr is also offered under the Unlicense.
+
+## Stills
+
+The SVG stills in `docs/images` are drawn by the program itself with `zacess-games snap` through
+`scripts/snapshots.sh` and are under this project's MIT licence.
 
 ## Fonts
 

@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="867.99994" height="568" viewBox="0 0 867.99994 568" role="img" aria-label="Merge Gates in Zacess Light, part way through a game">
+<title>Merge Gates in Zacess Light, part way through a game</title>
+<rect x="0.5" y="0.5" width="866.99994" height="567" rx="10" fill="#ffffff" stroke="#424242"/>
+<line x1="0.5" y1="30" x2="867.49994" y2="30" stroke="#424242"/>
+<circle cx="18" cy="15" r="5" fill="#ca010e"/>
+<circle cx="34" cy="15" r="5" fill="#885a00"/>
+<circle cx="50" cy="15" r="5" fill="#01751c"/>
+<text x="433.99997" y="19.5" fill="#111111" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13" text-anchor="middle">zacess-games merge-gates</text>
+<rect x="534.8" y="350" width="75.6" height="17" fill="#b301ae"/>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
+<text x="14" y="57" fill="#424242" textLength="16.8" lengthAdjust="spacingAndGlyphs">╭─</text>
+<text x="39.2" y="57" fill="#b301ae" textLength="109.2" lengthAdjust="spacingAndGlyphs">⊕ Merge Gates</text>
+<text x="156.8" y="57" fill="#424242" textLength="697.2" lengthAdjust="spacingAndGlyphs">· Zacess Games ─────────────────────────────────────────────────────────── Light ─╮</text>
+<text x="14" y="74" fill="#424242" textLength="58.8" lengthAdjust="spacingAndGlyphs">│ Score</text>
+<text x="81.2" y="74" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="98" y="74" fill="#424242" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ Target</text>
+<text x="173.6" y="74" fill="#111111" textLength="33.6" lengthAdjust="spacingAndGlyphs">0010</text>
+<text x="215.6" y="74" fill="#424242" textLength="50.4" lengthAdjust="spacingAndGlyphs">│ Gate</text>
+<text x="274.4" y="74" fill="#111111" textLength="16.8" lengthAdjust="spacingAndGlyphs">OR</text>
+<text x="299.6" y="74" fill="#424242" textLength="50.4" lengthAdjust="spacingAndGlyphs">│ Sent</text>
+<text x="358.4" y="74" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">0</text>
+<text x="375.2" y="74" fill="#424242" textLength="50.4" lengthAdjust="spacingAndGlyphs">│ Best</text>
+<text x="434" y="74" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">-</text>
+<text x="686" y="74" fill="#111111" textLength="151.2" lengthAdjust="spacingAndGlyphs">FX 35% · Music 20%</text>
+<text x="845.6" y="74" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="91" fill="#424242" textLength="840" lengthAdjust="spacingAndGlyphs">├──────────────────────────────────────────────────────────────────────────────────────────────────┤</text>
+<text x="14" y="108" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="108" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="125" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="125" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="142" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="142" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="159" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="159" fill="#b301ae" textLength="16.8" lengthAdjust="spacingAndGlyphs">┏━</text>
+<text x="173.6" y="159" fill="#111111" textLength="42" lengthAdjust="spacingAndGlyphs">Board</text>
+<text x="224" y="159" fill="#b301ae" textLength="277.2" lengthAdjust="spacingAndGlyphs">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓</text>
+<text x="518" y="159" fill="#424242" textLength="16.8" lengthAdjust="spacingAndGlyphs">┌─</text>
+<text x="543.2" y="159" fill="#111111" textLength="50.4" lengthAdjust="spacingAndGlyphs">Output</text>
+<text x="602" y="159" fill="#424242" textLength="117.6" lengthAdjust="spacingAndGlyphs">─────────────┐</text>
+<text x="845.6" y="159" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="176" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="492.8" y="176" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="711.2" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="193" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="182" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="249.2" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="316.4" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="383.6" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="450.8" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="492.8" y="193" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="193" fill="#424242" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ Target</text>
+<text x="711.2" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="193" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="210" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="492.8" y="210" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="534.8" y="210" fill="#111111" textLength="58.8" lengthAdjust="spacingAndGlyphs">□ □ ■ □</text>
+<text x="627.2" y="210" fill="#b301ae" textLength="33.6" lengthAdjust="spacingAndGlyphs">0010</text>
+<text x="711.2" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="227" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="291.2" y="227" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="492.8" y="227" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="711.2" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="244" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="182" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="249.2" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="291.2" y="244" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1011 │</text>
+<text x="383.6" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="450.8" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="492.8" y="244" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="244" fill="#424242" textLength="100.8" lengthAdjust="spacingAndGlyphs">│ Gate track</text>
+<text x="711.2" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="261" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="261" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="291.2" y="261" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="492.8" y="261" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="261" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="534.8" y="261" fill="#111111" textLength="33.6" lengthAdjust="spacingAndGlyphs">▶ OR</text>
+<text x="602" y="261" fill="#b301ae" textLength="33.6" lengthAdjust="spacingAndGlyphs">next</text>
+<text x="711.2" y="261" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="261" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="278" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="278" fill="#b301ae" textLength="75.6" lengthAdjust="spacingAndGlyphs">┃╭──────╮</text>
+<text x="291.2" y="278" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="358.4" y="278" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="492.8" y="278" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="278" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="551.6" y="278" fill="#111111" textLength="25.2" lengthAdjust="spacingAndGlyphs">AND</text>
+<text x="711.2" y="278" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="278" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="295" fill="#b301ae" textLength="75.6" lengthAdjust="spacingAndGlyphs">┃│ 1100 │</text>
+<text x="249.2" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="291.2" y="295" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1010 │</text>
+<text x="358.4" y="295" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1011 │</text>
+<text x="450.8" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="492.8" y="295" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="551.6" y="295" fill="#111111" textLength="33.6" lengthAdjust="spacingAndGlyphs">XNOR</text>
+<text x="711.2" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="295" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="312" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="312" fill="#b301ae" textLength="75.6" lengthAdjust="spacingAndGlyphs">┃╰──────╯</text>
+<text x="291.2" y="312" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="358.4" y="312" fill="#885a00" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="492.8" y="312" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="312" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="551.6" y="312" fill="#111111" textLength="25.2" lengthAdjust="spacingAndGlyphs">AND</text>
+<text x="711.2" y="312" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="312" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="329" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="329" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="224" y="329" fill="#111111" textLength="67.2" lengthAdjust="spacingAndGlyphs">┌──────┐</text>
+<text x="291.2" y="329" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="492.8" y="329" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="329" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="711.2" y="329" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="329" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="346" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="182" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="224" y="346" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="249.2" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="282.8" y="346" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="291.2" y="346" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1000 │</text>
+<text x="383.6" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="450.8" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="492.8" y="346" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="346" fill="#424242" textLength="109.2" lengthAdjust="spacingAndGlyphs">│ Pushes left</text>
+<text x="711.2" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="346" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="363" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="363" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="224" y="363" fill="#111111" textLength="67.2" lengthAdjust="spacingAndGlyphs">└──────┘</text>
+<text x="291.2" y="363" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="492.8" y="363" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="363" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="610.4" y="363" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="627.2" y="363" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">9</text>
+<text x="711.2" y="363" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="363" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="380" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="380" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="156.8" y="380" fill="#01751c" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="224" y="380" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="291.2" y="380" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">╭──────╮</text>
+<text x="492.8" y="380" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="380" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="711.2" y="380" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="380" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="397" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="397" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="156.8" y="397" fill="#01751c" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1111 │</text>
+<text x="224" y="397" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 1001 │</text>
+<text x="291.2" y="397" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">│ 0100 │</text>
+<text x="383.6" y="397" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="450.8" y="397" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
+<text x="492.8" y="397" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="397" fill="#424242" textLength="117.6" lengthAdjust="spacingAndGlyphs">│ Faults ○ ○ ○</text>
+<text x="711.2" y="397" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="397" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="414" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="414" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="156.8" y="414" fill="#01751c" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="224" y="414" fill="#b301ae" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="291.2" y="414" fill="#026f6f" textLength="67.2" lengthAdjust="spacingAndGlyphs">╰──────╯</text>
+<text x="492.8" y="414" fill="#b301ae" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
+<text x="518" y="414" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="711.2" y="414" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="414" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="431" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="148.4" y="431" fill="#b301ae" textLength="352.8" lengthAdjust="spacingAndGlyphs">┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛</text>
+<text x="518" y="431" fill="#424242" textLength="201.6" lengthAdjust="spacingAndGlyphs">└──────────────────────┘</text>
+<text x="845.6" y="431" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="448" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="448" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="465" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="465" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="482" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="845.6" y="482" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="499" fill="#424242" textLength="579.6" lengthAdjust="spacingAndGlyphs">├────────────────────────────────────────────────────────────────────</text>
+<text x="602" y="499" fill="#b301ae" textLength="218.4" lengthAdjust="spacingAndGlyphs">◆ No tile under the cursor</text>
+<text x="828.8" y="499" fill="#424242" textLength="25.2" lengthAdjust="spacingAndGlyphs">──┤</text>
+<text x="14" y="516" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="30.8" y="516" fill="#111111" textLength="453.6" lengthAdjust="spacingAndGlyphs">Arrows move · W A S D push · Enter grab, then an arrow</text>
+<text x="845.6" y="516" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="533" fill="#424242" textLength="512.4" lengthAdjust="spacingAndGlyphs">│ Space pause · ? help · + - fx · [ ] music · 0 mute · Q quit</text>
+<text x="845.6" y="533" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
+<text x="14" y="550" fill="#424242" textLength="840" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+</g>
+</svg>

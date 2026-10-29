@@ -12,7 +12,7 @@ updates:
       actions:
         patterns: ["*"]
 
-  # finds nothing to update until the first Cargo.toml lands, then covers the games' crates
+  # the games' crates; zacess-scenes is pinned to a git tag and moves by hand
   - package-ecosystem: cargo
     directory: /
     schedule:

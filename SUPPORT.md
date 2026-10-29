@@ -16,7 +16,7 @@
 
 ## Self-help
 
-- [README.md](README.md) for the planned games and what every game has
+- [README.md](README.md) for the games and what every game has
 - [docs/how-to-play.md](docs/how-to-play.md) for the rules and [docs/controls.md](docs/controls.md)
   for the keys
 - [ACCESSIBILITY.md](ACCESSIBILITY.md) for the requirements every game meets
