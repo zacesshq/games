@@ -42,13 +42,13 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
-      - name: Check the stills are current
+      - name: Check the stills and showcase frames are current
         if: runner.os == 'Linux'
         run: |
           ./scripts/snapshots.sh
-          git status --porcelain docs/images
-          git diff --exit-code docs/images
-          test -z "$(git status --porcelain docs/images)"
+          git status --porcelain docs/images docs/frames
+          git diff --exit-code docs/images docs/frames
+          test -z "$(git status --porcelain docs/images docs/frames)"
       - name: Play every game without a terminal
         shell: bash
         run: |

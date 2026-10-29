@@ -1,0 +1,154 @@
+# The keys each game's showcase recording plays, in the order the games appear in the menu.
+# `zacess-games snap all --frames N` plays them and scripts/snapshots.sh publishes the frames in
+# docs/frames. A recording is changed here, never in the code.
+#
+# [game]          starts a game's recording
+# seed N          the seed it plays with (otherwise 1)
+# start S         seconds played before the first frame is kept
+# step S keys     presses each key with S seconds after it; right*4 presses one four times
+# type S text     types the text one character at a time with S seconds after each
+# anything else   keys as for --keys, such as: left, enter, wait:0.5
+#
+# Times are rounded to the game's 30 steps a second, so 0.133 is four steps and 0.167 five.
+
+# pieces fall into Well A and the fourth one completes a row of wire, which clears
+[stackline]
+seed 34
+wait:0.7
+left, wait:0.3, left, wait:0.6, enter, wait:0.6
+wait:0.5, enter, wait:0.6
+right, wait:0.25, right, wait:0.25, right, wait:0.5, enter, wait:0.6
+wait:0.3, right, wait:0.3, right, wait:0.6, enter, wait:2
+
+# three pushes combine tiles through the gates until one matches the target, then play goes on
+[merge-gates]
+seed 16
+wait:0.8
+left, wait:0.6, a, wait:1.2
+w, wait:1.2
+s, wait:1.4
+right, wait:0.4, right, wait:0.4, up, wait:0.5, a, wait:1.5
+
+# two guesses narrow down the daily term, then the third solves it
+[termle]
+wait:0.8
+type 0.15 TESLA
+enter, wait:1.2
+type 0.15 CLASS
+enter, wait:1.2
+type 0.15 PHASE
+enter, wait:2
+
+# notes are caught on the beat in the middle and low lanes
+[signal]
+start 3.5
+wait:5
+right, wait:0.833
+down, wait:0.834
+down, wait:0.833
+down, wait:0.833
+down, wait:1.667
+down, wait:0.833
+right, wait:0.834
+right, wait:0.833
+right, wait:0.833
+
+# the first level is wired, then the second branches to light three nodes
+[trace]
+wait:0.3
+right, wait:0.25, right, wait:0.25, right, wait:0.25
+right, wait:0.25, right, wait:0.25, right, wait:1.8
+right, wait:0.2, right, wait:0.2, right, wait:0.2, right, wait:0.3
+down, wait:0.2, left, wait:0.2, down, wait:0.3
+right, wait:0.2, right, wait:0.2, right, wait:2
+
+# the lantern glides down and along, gathering motes as the land scrolls
+[drift]
+wait:2
+down, wait:1.2
+right, wait:1.2
+right, wait:1.5
+up, wait:2
+
+# the player fetches a fuse from across the room and fixes the fault, opening the doors
+[rooms]
+wait:0.5
+step 0.13 up*4 right*15
+wait:0.4
+step 0.13 down left*11 down*4 left down
+wait:2
+
+# the packet clears the first level, then waits a beat for a gate on the second
+[relay]
+wait:0.3
+step 0.2 right*7
+right, wait:1.8
+step 0.22 right right w right right right right right right down down
+wait:2
+
+# a pass and a return pass work the ball into the box, then a low shot scores
+[through-ball]
+seed 3
+wait:0.6
+step 0.45 right right enter down
+tab, wait:0.35, enter, wait:0.45
+step 0.45 right*5
+1, wait:2.2
+
+# the car changes lanes, takes the pit lane to top up, then rejoins the road
+[slipstream]
+wait:0.8
+right, wait:0.9
+right, wait:0.9
+right, wait:2.6
+left, wait:0.6
+up, wait:2
+
+# the turret lines up under falling debris and clears it
+[array-guard]
+start 1.5
+wait:1.6
+step 0.1 right*10
+step 0.1 up*4
+wait:0.1
+step 0.1 up*3
+wait:1.2
+step 0.1 up*5
+wait:1.1
+step 0.1 left*10
+step 0.1 up*4
+wait:0.1
+step 0.1 right*12
+step 0.1 up*4
+wait:2
+
+# code fragments drift towards the chip and are typed away
+[heatsink]
+start 3.6
+wait:3.8
+type 0.2 struct
+type 0.2 a[i] = 0
+wait:0.6
+type 0.2 x += 1
+wait:1.8
+type 0.2 i++
+wait:2
+
+# the first lesson is typed with one slip, fixed with Backspace
+[touch-typing]
+wait:0.5
+type 0.133 jfjj jjff f
+type 0.4 j
+bs, wait:0.3
+type 0.133 f fjj ffff fj jjj ffjf fj
+wait:0.6
+type 0.133 ff jjfj
+wait:2
+
+# the first Python level is opened and its blank filled in correctly
+[learn-to-code]
+wait:1
+enter, wait:1
+type 0.167 "Hello, world"
+wait:0.6
+enter, wait:3

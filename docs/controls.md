@@ -12,6 +12,7 @@ Every key, command, flag, variable and setting in Zacess Games on one page. Key 
 | `zacess-games sounds` | Plays every effect with its name and meaning, then eight seconds of each game's music |
 | `zacess-games sounds <game>` | Plays eight seconds of one game's music |
 | `zacess-games snap [game]` | Writes SVG stills of one game or all of them into the current folder |
+| `zacess-games snap [game] --frames <n>` | Plays each game's recording from `scripts/recordings.txt` and writes `n` frames of it as JSON, the format Zacess Scenes uses for its showcase frames |
 | `zacess-games --help` | Every option |
 | `zacess-games --version` | The version |
 
@@ -84,6 +85,9 @@ While paused, any key that is not a sound key carries on. The right end of the s
 | `--layout <uk-mac or uk-pc or us>` | The keyboard layout Touch Typing teaches on, for this run |
 | `--headless <game> --keys <keys> --size <W>x<H>` | Plays keys without a terminal and prints the screen as text |
 | `snap --theme all --out <dir>` | Stills for every theme into a folder |
+| `snap --frames <n> --fps <1 to 30>` | Frames of a recording at that rate, 10 a second unless set |
+| `snap <game> --frames <n> --keys <keys>` | Frames of one game playing those keys instead of its recording |
+| `snap --frames <n> --script <file>` | Frames from another recording script, in the format of `scripts/recordings.txt` |
 
 ## Environment variables
 

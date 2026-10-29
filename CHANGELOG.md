@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Added
+
+- Showcase recordings of all fourteen games in `docs/frames`, seven seconds of real play each at ten frames a second, 80 by 24, in Zacess Deep Contrast Dark. They are JSON in the same format as the Zacess Scenes showcase frames, so the website plays them with the same player as the scenes. Stackline clears a row, Merge Gates combines tiles into the target, Termle solves the daily term, Signal catches notes on the beat, Trace wires two levels, Drift gathers motes, Rooms fetches a part and fixes a fault, Relay passes a timed gate, Through Ball passes and scores, Slipstream takes a pit stop, Array Guard clears debris, Heatsink and Touch Typing are typed and Learn to Code fills in a blank.
+- `snap --frames N` with `--fps`, `--keys` and `--script`. It replays a scripted key sequence with a fixed seed against the real game logic and renderer without a terminal, samples frames on the game's own clock and passes each one through the flash meter, holding back any frame that would change a large area too often.
+- `scripts/recordings.txt`, the keys, seed and start of every recording, so a recording changes without touching the code. It is built into the binary.
+- Tests that every recording is the same on every run, keeps the flash limit in all eight themes and shows play rather than a still, plus tests of the recording script and of the recorder's timing.
+- `scripts/snapshots.sh` makes the frames as well as the stills and CI fails when either is out of date.
+
 ### Changed
 
 - A release now tells zacess.com to rebuild. Once every platform's files are attached, the release workflow sends a `games-release` repository dispatch naming the tag to `zacesshq/website`, so the site no longer waits for its daily deploy.

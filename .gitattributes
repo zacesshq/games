@@ -9,3 +9,6 @@
 
 # lockfiles are written by tools, so their diffs are collapsed in reviews
 Cargo.lock  linguist-generated
+
+# the showcase frames are written by scripts/snapshots.sh, so their diffs are collapsed too
+docs/frames/*.json  linguist-generated

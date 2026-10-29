@@ -6,6 +6,7 @@ mod games;
 mod keyboard;
 mod levels;
 mod music;
+mod record;
 mod scores;
 mod sound;
 mod term;
@@ -44,6 +45,9 @@ Usage:
   zacess-games sounds [game]   plays every effect, then each game's music
   zacess-games snap [game|all] [--out DIR] [--theme NAME|all]
                                SVG stills of the games
+  zacess-games snap [game|all] --frames N [--fps F] [--out DIR]
+                               JSON frames of each game's recording
+                               (scripts/recordings.txt) for a web page
   zacess-games --headless <game> [--keys KEYS] [--size WxH]
                                plays keys without a terminal and prints the screen
 
@@ -60,6 +64,10 @@ Options:
   --basic             plain characters for fonts without geometric shapes
   --layout NAME       the keyboard for Touch Typing: uk-mac, uk-pc or us
                       (also ZACESS_KEYBOARD; otherwise the system's layout)
+  --frames N          with snap, N frames of JSON instead of a still
+  --fps F             frames a second for --frames, 1 to 30 (default 10)
+  --script FILE       with --frames, a recording script instead of the
+                      built-in one
   --version, --help
 
 Effects start at volume 35 and music at 20; changes are remembered. In most
@@ -83,6 +91,9 @@ struct Args {
     keys: Option<String>,
     size: (usize, usize),
     out: Option<PathBuf>,
+    frames: Option<usize>,
+    fps: u32,
+    script: Option<PathBuf>,
 }
 
 fn parse_args(raw: Vec<String>) -> Result<Args, String> {
@@ -102,6 +113,9 @@ fn parse_args(raw: Vec<String>) -> Result<Args, String> {
         keys: None,
         size: (100, 30),
         out: None,
+        frames: None,
+        fps: 10,
+        script: None,
     };
     let mut it = raw.into_iter();
     while let Some(arg) = it.next() {
@@ -159,6 +173,24 @@ fn parse_args(raw: Vec<String>) -> Result<Args, String> {
                 a.size = (w, h);
             }
             "--out" => a.out = Some(PathBuf::from(value("--out")?)),
+            "--frames" => {
+                let v = value("--frames")?;
+                a.frames = Some(
+                    v.parse()
+                        .ok()
+                        .filter(|n| (1..=3600).contains(n))
+                        .ok_or_else(|| format!("--frames takes 1 to 3600, not \"{v}\""))?,
+                );
+            }
+            "--fps" => {
+                let v = value("--fps")?;
+                a.fps = v
+                    .parse()
+                    .ok()
+                    .filter(|n| (1..=30).contains(n))
+                    .ok_or_else(|| format!("--fps takes 1 to 30, not \"{v}\""))?;
+            }
+            "--script" => a.script = Some(PathBuf::from(value("--script")?)),
             s if s.starts_with('-') && s != "-" => return Err(format!("unknown option {s}")),
             _ => {
                 if a.command.is_none() {
@@ -227,6 +259,9 @@ fn parse_keys(text: &str) -> Result<Vec<(Key, f32)>, String> {
 }
 
 fn snap(args: &Args, setup: Setup) -> Result<(), String> {
+    if let Some(count) = args.frames {
+        return snap_frames(args, setup, count);
+    }
     let out = args.out.clone().unwrap_or_else(|| PathBuf::from("."));
     std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     let themes: Vec<&'static ThemeData> = match args.theme.as_deref() {
@@ -262,6 +297,57 @@ fn snap(args: &Args, setup: Setup) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
             println!("{}", path.display());
         }
+    }
+    Ok(())
+}
+
+/// Each game's recording as JSON frames in the format Zacess Scenes uses, so the same player
+/// shows both on a web page.
+fn snap_frames(args: &Args, setup: Setup, count: usize) -> Result<(), String> {
+    let out = args.out.clone().unwrap_or_else(|| PathBuf::from("."));
+    std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+    if args.theme.as_deref() == Some("all") {
+        return Err("--frames records one theme at a time".into());
+    }
+    let t = choose_theme(args.theme.as_deref())?;
+    let text = match &args.script {
+        Some(path) => std::fs::read_to_string(path)
+            .map_err(|e| format!("{} could not be read: {e}", path.display()))?,
+        None => record::BUILT_IN.to_string(),
+    };
+    let script = record::parse(&text)?;
+    let wanted: Vec<&'static game::Info> = match args.target.as_deref() {
+        None | Some("all") => games::ALL.to_vec(),
+        Some(name) => vec![games::find(name).ok_or_else(|| format!("no game called \"{name}\""))?],
+    };
+    if args.keys.is_some() && wanted.len() > 1 {
+        return Err("--keys records one game at a time".into());
+    }
+    for info in wanted {
+        // keys given on the command line replace the recording, its seed and start included
+        let recording = record::find(&script, info.id).filter(|_| args.keys.is_none());
+        let setup = Setup {
+            seed: recording.and_then(|r| r.seed).unwrap_or(setup.seed),
+            ..setup
+        };
+        let keys = match (&args.keys, recording) {
+            (Some(keys), _) => parse_keys(keys)?,
+            (None, Some(r)) => r.keys.clone(),
+            (None, None) => games::make(info.id, setup)
+                .map(|g| g.demo())
+                .unwrap_or_default(),
+        };
+        let take = app::Take {
+            start: recording.map_or(0.0, |r| r.start),
+            fps: args.fps,
+            count,
+        };
+        let frames = app::record(info.id, setup, &keys, args.size, t, take)
+            .ok_or_else(|| format!("{} would not start", info.id))?;
+        let path = out.join(format!("{}.json", info.id));
+        std::fs::write(&path, snapshot::frames_json(&frames, args.fps, t))
+            .map_err(|e| e.to_string())?;
+        println!("{}", path.display());
     }
     Ok(())
 }
@@ -464,6 +550,20 @@ mod tests {
         assert_eq!(a.seed, Some(4));
         assert_eq!(a.size, (100, 30));
         assert!(parse_args(vec!["--volume".into(), "300".into()]).is_err());
+    }
+
+    #[test]
+    fn frame_options_parse_and_check_their_range() {
+        let args = |list: &[&str]| parse_args(list.iter().map(|s| s.to_string()).collect());
+        let a = args(&["snap", "relay", "--frames", "70", "--fps", "12"])
+            .ok()
+            .unwrap();
+        assert_eq!(a.frames, Some(70));
+        assert_eq!(a.fps, 12);
+        assert_eq!(args(&["snap"]).ok().unwrap().fps, 10);
+        assert!(args(&["--frames", "0"]).is_err());
+        assert!(args(&["--fps", "31"]).is_err());
+        assert!(args(&["--fps", "fast"]).is_err());
     }
 
     #[test]

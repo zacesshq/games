@@ -705,6 +705,77 @@ pub fn headless(
     Some((frame, session))
 }
 
+/// When a recording's frames are taken: seconds played before the first is kept, frames a second
+/// and how many.
+#[derive(Clone, Copy, Debug)]
+pub struct Take {
+    pub start: f32,
+    pub fps: u32,
+    pub count: usize,
+}
+
+/// Plays `keys` without a terminal and keeps the frames `take` asks for, sampled on the game's
+/// own clock, for a web page to play. Time only moves on through each key's wait, so a key with no
+/// wait lands in the same frame as the next. When the keys run out the game carries on alone.
+/// The first seconds of `take.start` are played but not kept, so a slow opening can be skipped.
+/// Every frame goes through the flash meter at the recording's rate, as a Scenes recording
+/// does: a frame that would change a large area too often is replaced by the one before it.
+pub fn record(
+    id: &str,
+    setup: Setup,
+    keys: &[(Key, f32)],
+    size: (usize, usize),
+    theme: &'static ThemeData,
+    take: Take,
+) -> Option<Vec<Frame>> {
+    let Take { start, fps, count } = take;
+    let pal = Palette::new(theme);
+    let mut scores = Scores::in_memory();
+    let mut sound = Sound::silent();
+    let game = games::make(id, setup)?;
+    let mut session = Session::new(game, setup, &scores);
+    let mut frame = Frame::new(size.0, size.1);
+    let fps = u64::from(fps).clamp(1, FPS);
+    let dt = 1.0 / FPS as f32;
+    let mut meter = Meter::new();
+    let mut frames: Vec<Frame> = Vec::with_capacity(count);
+    // whole ticks rather than summed seconds, so the sample times never drift with rounding
+    let skip = (start.max(0.0) * FPS as f32).round() as u64;
+    let mut tick: u64 = 0;
+    let rest = std::iter::repeat((Key::None, f32::INFINITY));
+    for (key, wait) in keys.iter().copied().chain(rest) {
+        if frames.len() >= count {
+            break;
+        }
+        session.key(key, &mut sound, &mut scores);
+        let ticks = if wait.is_finite() {
+            (wait.max(0.0) * FPS as f32).round() as u64
+        } else {
+            u64::MAX
+        };
+        let mut waited = 0;
+        // a frame due on the tick a key lands is drawn after the key, so the key shows in it
+        while waited < ticks && frames.len() < count {
+            // sample n falls due on tick start + n * FPS / fps
+            while tick >= skip
+                && frames.len() < count
+                && frames.len() as u64 * FPS <= (tick - skip) * fps
+            {
+                session.draw(&mut frame, pal, &sound);
+                meter.advance(1.0 / fps as f32);
+                match (meter.judge(&frame, theme), frames.last()) {
+                    (Verdict::Hold, Some(last)) => frames.push(last.clone()),
+                    _ => frames.push(frame.clone()),
+                }
+            }
+            session.tick(dt, &sound, &mut scores);
+            tick += 1;
+            waited += 1;
+        }
+    }
+    Some(frames)
+}
+
 /// The menu drawn without a terminal, with the chosen game's page open when `help` is set.
 pub fn headless_menu(
     size: (usize, usize),
