@@ -69,10 +69,10 @@ themes and in the compact and large layouts.
 
 ### With Cargo
 
-The games are not on crates.io, so Cargo installs them from this repository:
+The games are not on crates.io, so Cargo installs them from a release tag here:
 
 ```sh
-cargo install --locked --git https://github.com/zacesshq/games zacess-games
+cargo install --locked --git https://github.com/zacesshq/games --tag v0.1.0 zacess-games
 ```
 
 Rust 1.88 or later and a C compiler, since Lua 5.4 is built into the program. Sound is played by
@@ -81,9 +81,23 @@ Windows), so nothing else is needed.
 
 ### From a release
 
-Each [release](https://github.com/zacesshq/games/releases/latest) will carry a built binary for
-macOS, Linux and Windows with a SHA-256 file beside it, in the same way as the
-[Zacess Scenes releases](https://github.com/zacesshq/scenes/releases/latest).
+Each [release](https://github.com/zacesshq/games/releases/latest) carries a built binary for:
+
+| File | System |
+| --- | --- |
+| `zacess-games-<tag>-aarch64-apple-darwin.tar.gz` | macOS on Apple silicon |
+| `zacess-games-<tag>-x86_64-apple-darwin.tar.gz` | macOS on Intel |
+| `zacess-games-<tag>-x86_64-unknown-linux-musl.tar.gz` | Linux on x86-64, no shared libraries needed |
+| `zacess-games-<tag>-aarch64-unknown-linux-musl.tar.gz` | Linux on ARM64, no shared libraries needed |
+| `zacess-games-<tag>-x86_64-pc-windows-msvc.zip` | Windows on x86-64 |
+
+Each archive has a `.sha256` file beside it and holds the guides as well as the program. Check the
+sum, unpack the archive and put `zacess-games` (or `zacess-games.exe`) somewhere on your `PATH`.
+
+```sh
+shasum -a 256 -c zacess-games-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf zacess-games-v0.1.0-aarch64-apple-darwin.tar.gz
+```
 
 ## Documentation
 
