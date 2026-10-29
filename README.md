@@ -80,7 +80,7 @@ recording plays are in [`scripts/recordings.txt`](scripts/recordings.txt) and
 The games are not on crates.io, so Cargo installs them from a release tag here:
 
 ```sh
-cargo install --locked --git https://github.com/zacesshq/games --tag v0.1.0 zacess-games
+cargo install --locked --git https://github.com/zacesshq/games --tag v0.2.0 zacess-games
 ```
 
 Rust 1.88 or later and a C compiler, since Lua 5.4 is built into the program. Sound is played by
@@ -103,8 +103,8 @@ Each archive has a `.sha256` file beside it and holds the guides as well as the 
 sum, unpack the archive and put `zacess-games` (or `zacess-games.exe`) somewhere on your `PATH`.
 
 ```sh
-shasum -a 256 -c zacess-games-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
-tar -xzf zacess-games-v0.1.0-aarch64-apple-darwin.tar.gz
+shasum -a 256 -c zacess-games-v0.2.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf zacess-games-v0.2.0-aarch64-apple-darwin.tar.gz
 ```
 
 ## Documentation
