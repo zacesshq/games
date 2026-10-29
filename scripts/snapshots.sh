@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# regenerates the stills in docs/images from the program itself, so they always match what the
-# games draw. CI runs this and fails when the committed files differ.
+# regenerates the stills in docs/images and the showcase frames in docs/frames from the program
+# itself, so they always match what the games draw. CI runs this and fails when the committed
+# files differ.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -18,9 +19,10 @@ export XDG_STATE_HOME="$PWD/target/snapshots-no-state"
 rm -rf "$ZACESS_GAMES_STATE"
 
 stills=docs/images
+frames=docs/frames
 work=target/snapshots
-rm -rf "$stills" "$work"
-mkdir -p "$stills" "$work"
+rm -rf "$stills" "$frames" "$work"
+mkdir -p "$stills" "$frames" "$work"
 
 # every game and the menu in Deep Contrast Dark and in Light at the standard size
 for theme in deep-dark light; do
@@ -52,3 +54,7 @@ done
 "$bin" snap all --theme deep-dark --size 207x48 --out "$work" >/dev/null
 mv "$work/menu-deep-dark.svg" "$stills/menu-large-deep-dark.svg"
 rm -rf "$work"
+
+# each game's recording from scripts/recordings.txt, seven seconds at ten frames a second in the
+# same JSON format as the Scenes frames, so one web player shows both
+"$bin" snap all --frames 70 --fps 10 --theme deep-dark --size 80x24 --out "$frames" >/dev/null

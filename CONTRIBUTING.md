@@ -31,12 +31,37 @@ CI runs the same three on Linux, macOS and Windows, plays every game without a t
 sizes and builds the static Linux and Intel macOS release targets, since Lua is compiled from
 source for each one. It also checks the crate on Rust 1.88, the `rust-version` in `Cargo.toml`.
 
-The stills in `docs/images` are drawn by the program. After a change to how a game looks, make them
-again and commit the result, since CI fails when they differ:
+The stills in `docs/images` and the recordings in `docs/frames` are drawn by the program. After a
+change to how a game looks or plays, make them again and commit the result, since CI fails when
+they differ:
 
 ```sh
 ./scripts/snapshots.sh
 ```
+
+Running it twice gives the same files, since every recording plays fixed keys with a fixed seed.
+
+### Adding or changing a recording
+
+Each game's recording is a section of [`scripts/recordings.txt`](scripts/recordings.txt): a
+`[game]` line, then an optional `seed`, an optional `start` (seconds played before the first frame
+is kept) and the keys. Keys are written as for `--keys`, as a `step` line that presses each key with
+the same wait after it or as a `type` line that types text one character at a time. The file's
+header explains each line.
+
+1. Change the section and look at the result frame by frame without a terminal:
+
+   ```sh
+   cargo run -- snap relay --frames 70 --fps 10 --theme deep-dark --size 80x24 --out target/try
+   ```
+
+   The frames are in `target/try/relay.json`. `--keys` tries a sequence before it goes in the
+   file.
+
+2. Keep it to real play that shows what the game is about, within the seven seconds that
+   `scripts/snapshots.sh` records. Times are rounded to the game's 30 steps a second.
+3. Run `cargo test`, which holds every recording to the flash limit in every theme, then
+   `./scripts/snapshots.sh` and commit `scripts/recordings.txt` with the new frames.
 
 A single game can be played without a terminal to see a frame as text:
 
@@ -68,10 +93,11 @@ A game is ready to merge when it has all of the following:
    theme's floor in all eight themes, nothing flashes, reduced motion slows or stills the game and
    the game can be paused at any moment. A game that runs on a timer also needs a test that a
    paused game never loses time.
-5. **Documentation**: a row and a still in the README's games tables, its section in
+5. **A recording** in `scripts/recordings.txt`, which a test requires of every game.
+6. **Documentation**: a row and a still in the README's games tables, its section in
    [docs/how-to-play.md](docs/how-to-play.md), its keys in [docs/controls.md](docs/controls.md),
    its signals in [ACCESSIBILITY.md](ACCESSIBILITY.md), its name in the game lists of the three
-   issue forms, its stills from `scripts/snapshots.sh` and an entry in the changelog's
+   issue forms, its stills and frames from `scripts/snapshots.sh` and an entry in the changelog's
    `Unreleased` section.
 
 > [!IMPORTANT]

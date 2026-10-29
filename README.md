@@ -65,6 +65,14 @@ Every still is Zacess Deep Contrast Dark at 100 by 30, part way through a game.
 Every game also has a still in Zacess Light in [`docs/images`](docs/images/), with a few in other
 themes and in the compact and large layouts.
 
+Every game also has a short recording of real play in [`docs/frames`](docs/frames/): seven seconds
+at ten frames a second, 80 by 24, in Zacess Deep Contrast Dark. Each file is JSON in the same
+format as the [Zacess Scenes](https://github.com/zacesshq/scenes) showcase frames, a list of frames
+that each hold runs of text in one colour, so one web player shows both. Every recording passes the
+flash meter, so it never changes a large area more than three times a second. The keys each
+recording plays are in [`scripts/recordings.txt`](scripts/recordings.txt) and
+`scripts/snapshots.sh` makes the stills and the frames again from the program.
+
 ## Install
 
 ### With Cargo
