@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Added
+
+- The Zacess Games mark in `assets/` in light, dark, automatic and single colour versions, with a light and a dark lockup at the head of the README.
+
 ## [0.4.0] - 2026-11-04
 
 ### Changed

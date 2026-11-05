@@ -1,4 +1,9 @@
-# Zacess Games
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/games-lockup-dark.svg">
+    <img src="assets/games-lockup-light.svg" alt="Zacess Games" width="400">
+  </picture>
+</h1>
 
 Fourteen original games for the terminal, drawn in the eight [Zacess](https://zacess.com) high
 contrast themes.
