@@ -13,6 +13,7 @@ use mlua::{Table, Value};
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
 use crate::levels;
+use crate::pixels_ui::{Field, Ink, slot};
 use crate::scores::Scores;
 use crate::sound::Sfx;
 use crate::term::Key;
@@ -869,6 +870,23 @@ impl Game for LearnToCode {
         }
         let code = Rect::new(r.x, r.y + lesson_h + 2, r.w, code_h);
         c.titled(code, Line::Light, pal.muted, &level.name, pal.property);
+        // the editor: a quiet page with a gutter for the line numbers and the line being
+        // worked on lifted a little, all light enough for every colour of code on it
+        let ink = Ink::new(pal);
+        let page = Rect::new(code.x + 1, code.y + 1, code.w - 2, code_h - 2);
+        let mut f = Field::new(pal, page, ink.surface(pal.property, 0.05));
+        let (pw, ph) = (f.w(), f.h());
+        f.fill_rect(0, 0, 3, ph, ink.surface(pal.muted, 0.14));
+        let marker = format!("{{{}}}", self.blank + 1);
+        if self.screen == Screen::Level
+            && let Some(n) = level.code.iter().position(|l| l.contains(&marker))
+        {
+            let lifted = ink.surface(pal.property, 0.14);
+            f.fill_rect(3, 2 * n as i32, pw - 3, 2, lifted);
+            f.fill_rect(2, 2 * n as i32, 1, 2, ink.soften(pal.property, 0.3));
+        }
+        f.paint(c);
+        let slot_colour = ink.surface(pal.property, 0.3);
         for (n, line) in level.code.iter().enumerate() {
             let y = code.y + 1 + n as i32;
             c.text(code.x + 1, y, &format!("{:>2}", n + 1), pal.muted);
@@ -882,6 +900,13 @@ impl Game for LearnToCode {
                     let i = k - 1;
                     let active = i == self.blank && self.screen == Screen::Level;
                     let typed = &self.typed[i];
+                    // every blank sits in a slot of its own colour, so it reads as a field
+                    let span = if typed.is_empty() {
+                        3
+                    } else {
+                        typed.chars().count() as i32
+                    };
+                    slot(c, x, y, span + 2, slot_colour);
                     if active {
                         // the thin bar is the cursor; an empty blank keeps its three spaces so
                         // the bar sits where the text will go
@@ -934,6 +959,17 @@ impl Game for LearnToCode {
         } else {
             "Expected output"
         };
+        // the output on a small screen: a pale panel in a thin bezel, the label set into its
+        // top edge as a box title is
+        let rows = (level.output.len() as i32).min(r.y + r.h - y - 1).max(0);
+        let screen = Rect::new(r.x + 1, y, r.w - 2, rows + 2);
+        let mut f = Field::new(pal, screen, ink.back());
+        let glass = ink.surface(pal.green, 0.08);
+        let bezel = ink.soften(pal.muted, 0.55);
+        let (sw, sh) = (f.w(), 2 * (rows + 1));
+        f.fill_rect(0, 0, sw, sh + 1, bezel);
+        f.fill_rect(1, 1, sw - 2, sh - 1, glass);
+        f.paint(c);
         c.text(r.x + 2, y, label, pal.muted);
         for (i, line) in level.output.iter().enumerate() {
             if y + 1 + (i as i32) < r.y + r.h {

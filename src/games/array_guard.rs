@@ -7,9 +7,12 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use zacess_scenes::colour::Rgb;
+
+use crate::pixels_ui::{Field, Ink, fit, lump, ring};
 use crate::sound::Sfx;
 use crate::term::Key;
-use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
+use crate::ui::{Canvas, Hue, Line, Rect, Status};
 
 pub const INFO: Info = Info {
     id: "array-guard",
@@ -22,10 +25,10 @@ pub const INFO: Info = Info {
         "# Goal",
         "Protect a row of five satellite dishes from drifting debris for as many waves as you can.",
         "# Rules",
-        "- Your turret (◢▲◣) runs along the rail above the dishes and fires straight up.",
-        "- Small debris (◇) breaks with one shot. Large debris (◆) takes two and shows ◇ after the first.",
-        "- Debris that reaches the bottom hits the nearest dish. Each dish has a shield of three, drawn as a bar over it. A dish with no shield left is lost to the next hit (╳).",
-        "- Capsules drift down now and then. Shoot one to collect it: [S] spread shot for ten seconds, [H] one shield back on every dish and [L] a slow field for eight seconds.",
+        "- Your cannon runs along the rail behind the dishes and fires straight up.",
+        "- Small debris breaks with one shot. Large debris is a bigger rock that takes two and shrinks to a small one after the first.",
+        "- Debris that reaches the bottom hits the nearest dish. Each dish has a shield of three, shown as lamps on its cabinet and as a bar in the panel. A dish with no shield left is lost to the next hit and its bowl falls from the mast.",
+        "- Capsules drift down now and then, each with its letter on its face. Shoot one to collect it: S a spread shot for ten seconds, H one shield back on every dish and L a slow field for eight seconds.",
         "- A wave ends when its debris is cleared. The next one brings a little more.",
         "# Scoring",
         "10 points for small debris, 25 for large. Clearing a wave scores 100 times the wave plus 20 for every shield left.",
@@ -170,6 +173,294 @@ impl ArrayGuard {
     }
 }
 
+/// Where a logical cell lands in the field's pixels at scale `k`: one logical cell is `k`
+/// pixels wide and `2k` tall, so positions stay continuous at any scale.
+#[derive(Clone, Copy)]
+struct Scale(f32);
+
+impl Scale {
+    fn x(self, x: f32) -> f32 {
+        (x + 0.5) * self.0
+    }
+    fn y(self, y: f32) -> f32 {
+        (y * 2.0 + 1.0) * self.0
+    }
+    fn u(self) -> f32 {
+        self.0
+    }
+}
+
+impl ArrayGuard {
+    /// The sky, the plain, the rail, the dishes on their masts, the cannon, debris, bolts,
+    /// capsules and bursts. Everything is drawn at the field's scale, so the shapes grow with
+    /// the window while the game keeps its own grid.
+    fn paint_field(&self, f: &mut Field, ink: &Ink, k: Scale) {
+        let pal = ink.pal;
+        let (w, h) = (f.w(), f.h());
+        let u = k.u();
+        // a calm sky: night with still stars on a dark theme, a pale day on a light one
+        let (top, low) = if ink.light() {
+            (ink.tint(pal.blue, 0.4), ink.back())
+        } else {
+            (ink.back(), ink.tint(pal.blue, 0.5))
+        };
+        let horizon = k.y(H as f32 - 3.0);
+        for y in 0..h {
+            f.fill_row(y, ink.step(top, low, y as f32 / horizon, 10));
+        }
+        if !ink.light() {
+            let star = ink.mix(ink.back(), pal.text, 0.35);
+            let count = (w * h / 220).clamp(6, 40) as u32;
+            for i in 0..count {
+                let a = i.wrapping_mul(2_654_435_761) >> 9;
+                let b = (i ^ 0x5bd1).wrapping_mul(2_246_822_519) >> 11;
+                let y = (b % (horizon as u32 * 2 / 3).max(1)) as i32;
+                f.set((a % w as u32) as i32, y, star);
+            }
+        }
+        // far low hills on the horizon, then the ground the dishes stand on
+        let ground_y = h - (u * 1.2).ceil() as i32;
+        let hills = ink.tint(pal.green, if ink.light() { 0.35 } else { 0.55 });
+        for x in 0..w {
+            let t = x as f32 / u;
+            let rise = ((t * 0.21).sin() * 0.6 + (t * 0.07 + 1.3).sin() * 0.4 + 1.0) * 1.2 * u;
+            let top = ground_y - rise.round() as i32 - (u * 0.5) as i32;
+            f.fill_rect(x, top, 1, ground_y - top, hills);
+        }
+        f.fill_rect(0, ground_y, w, h - ground_y, ink.soften(pal.green, 0.7));
+        f.fill_rect(0, ground_y, w, 1, ink.soften(pal.green, 0.45));
+        // the rail the cannon runs along, behind the dishes
+        let rail_y = k.y(RAIL as f32) as i32 + u.round() as i32;
+        let rail = ink.soften(pal.muted, 0.5);
+        f.fill_rect(0, rail_y, w, (u * 0.5).ceil() as i32, rail);
+        for i in 0..DISHES {
+            self.paint_dish(f, ink, k, i, ground_y);
+        }
+        self.paint_cannon(f, ink, k, rail_y);
+        for &(x, y, _) in &self.shots {
+            let (sx, sy) = (k.x(x), k.y(y));
+            let len = (1.8 * u).max(2.0);
+            let glow = pal.info;
+            let x0 = sx.floor() as i32;
+            for py in (sy - len / 2.0) as i32..(sy + len / 2.0) as i32 {
+                f.set(x0, py, pal.bright);
+                if u >= 2.0 {
+                    f.blend(x0 - 1, py, glow, 0.35);
+                    f.blend(x0 + 1, py, glow, 0.35);
+                }
+            }
+        }
+        for rock in &self.rocks {
+            let centre = (k.x(rock.x), k.y(rock.y));
+            // the bumps turn as the rock falls, so it tumbles slowly
+            let spin = rock.y * 0.5 + rock.x;
+            let (colour, r) = if rock.hp >= 2 {
+                (pal.red, 2.0 * u)
+            } else {
+                (pal.yellow, 1.3 * u)
+            };
+            let tones = [
+                ink.highlight(colour, 0.35),
+                colour,
+                ink.shadow(colour, 0.45),
+            ];
+            lump(f, centre, r.max(1.4), tones, 0.14, spin);
+        }
+        self.paint_capsules(f, ink, k);
+        // a burst is a ring that grows in three still steps over a third of a second
+        for &(x, y, t) in &self.bursts {
+            let centre = (k.x(x), k.y(y));
+            let step = (t / BURST * 3.0) as i32;
+            if step == 0 {
+                f.disc(centre.0, centre.1, 0.8 * u, pal.bright);
+            } else {
+                ring(f, centre, (0.9 + step as f32) * u, pal.bright);
+            }
+        }
+    }
+
+    /// The letter cell and the pixel span of each capsule's face, shared by the shell and the
+    /// letter so the letter always sits on the face.
+    fn capsule_cells(&self, k: Scale) -> Vec<(i32, i32, i32, Power)> {
+        self.capsules
+            .iter()
+            .map(|&(x, y, p)| {
+                let col = k.x(x).floor() as i32;
+                let row = ((k.y(y) - 1.0) / 2.0).round() as i32;
+                let half = (1.5 * k.u()).ceil() as i32;
+                (col, row, half, p)
+            })
+            .collect()
+    }
+
+    /// A capsule: a rounded magenta shell around a pale face that carries its letter.
+    fn paint_capsules(&self, f: &mut Field, ink: &Ink, k: Scale) {
+        let pal = ink.pal;
+        let face = ink.surface(pal.magenta, 0.25);
+        let shell = (k.u() * 0.6).ceil() as i32;
+        for (col, row, half, _) in self.capsule_cells(k) {
+            let (x0, x1) = (col - half - shell, col + half + shell);
+            let (y0, y1) = (2 * row - shell, 2 * row + 1 + shell);
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    let corner = (x == x0 || x == x1) && (y == y0 || y == y1);
+                    if !corner {
+                        f.set(x, y, pal.magenta);
+                    }
+                }
+            }
+            f.fill_rect(col - half, 2 * row, 2 * half + 1, 2, face);
+        }
+    }
+
+    /// The cannon: a wide base on the rail, a domed body and a barrel pointing up, lit from
+    /// the left.
+    fn paint_cannon(&self, f: &mut Field, ink: &Ink, k: Scale, rail_y: i32) {
+        let pal = ink.pal;
+        let u = k.u();
+        let cx = k.x(self.turret as f32 + 1.0);
+        let (lit, body, dark) = (
+            ink.highlight(pal.info, 0.35),
+            pal.info,
+            ink.shadow(pal.info, 0.4),
+        );
+        let base_h = (0.8 * u).ceil().max(1.0) as i32;
+        // the dome, then the barrel with a bright muzzle
+        let dome_y = (rail_y - base_h) as f32;
+        let r = 1.6 * u;
+        lump(f, (cx, dome_y), r.max(1.2), [lit, body, dark], 0.0, 0.0);
+        let bw = (0.9 * u).round().max(1.0) as i32;
+        let bh = (2.6 * u).round().max(2.0) as i32;
+        let bx = (cx - bw as f32 / 2.0).round() as i32;
+        let by = (dome_y - r).round() as i32 - bh + 1;
+        f.fill_rect(bx, by, bw, bh, body);
+        if bw > 1 {
+            f.fill_rect(bx, by, 1, bh, lit);
+        }
+        f.fill_rect(bx, by, bw, 1, pal.bright);
+        // the base: a trapezoid on the rail, over the lower half of the dome
+        for i in 0..base_h {
+            let half = 2.6 * u - i as f32 * 0.5;
+            let y = rail_y - 1 - i;
+            let (x0, x1) = ((cx - half).round() as i32, (cx + half).round() as i32);
+            f.fill_rect(x0, y, x1 - x0, 1, dark);
+            f.fill_rect(x0, y, ((x1 - x0) / 2).max(1), 1, body);
+        }
+    }
+
+    /// One radio dish: a tilted bowl with its feed on a mast, coloured by its shield, over a
+    /// cabinet with three lamps, one for each point of shield left. A lost dish is a bowl
+    /// fallen beside a broken mast.
+    fn paint_dish(&self, f: &mut Field, ink: &Ink, k: Scale, i: usize, ground_y: i32) {
+        let pal = ink.pal;
+        let u = k.u();
+        let cx = k.x(dish_x(i) as f32 + 1.0);
+        let stand = ink.soften(pal.muted, 0.2);
+        let stand_dark = ink.soften(pal.muted, 0.5);
+        let mast_w = (0.6 * u).round().max(1.0) as i32;
+        let mast_x = (cx - mast_w as f32 / 2.0).round() as i32;
+        // the cabinet at the foot of the mast
+        let box_w = (3.6 * u).round().max(3.0) as i32;
+        let box_h = (1.0 * u).round().max(1.0) as i32 + 1;
+        let box_x = (cx - box_w as f32 / 2.0).round() as i32;
+        let box_y = ground_y - box_h;
+        if self.lost[i] {
+            f.fill_rect(
+                mast_x,
+                box_y - (u as i32).max(1),
+                mast_w,
+                (u as i32).max(1),
+                stand_dark,
+            );
+            f.fill_rect(box_x, box_y, box_w, box_h, stand_dark);
+            let bowl = ink.soften(pal.muted, 0.45);
+            let tones = [bowl, bowl, stand_dark];
+            bowl_shape(
+                f,
+                (cx + 2.2 * u, ground_y as f32 - 0.6 * u),
+                2.4 * u,
+                1.9,
+                tones,
+            );
+            return;
+        }
+        let colour = match self.shields[i] {
+            3 => pal.green,
+            2 => pal.cyan,
+            1 => pal.yellow,
+            _ => pal.warning,
+        };
+        let mast_h = (2.6 * u).round() as i32;
+        f.fill_rect(mast_x, box_y - mast_h, mast_w, mast_h, stand);
+        if mast_w > 1 {
+            f.fill_rect(mast_x + mast_w - 1, box_y - mast_h, 1, mast_h, stand_dark);
+        }
+        f.fill_rect(box_x, box_y, box_w, box_h, stand);
+        f.fill_rect(box_x, box_y + box_h - 1, box_w, 1, stand_dark);
+        // the lamps on the cabinet, bright for each point of shield left
+        let lamp = (0.5 * u).round().max(1.0) as i32;
+        let gap = (box_w - 3 * lamp) / 4;
+        for s in 0..SHIELD as i32 {
+            let lit = s < i32::from(self.shields[i]);
+            let x = box_x + gap + s * (lamp + gap) + (box_w - 3 * lamp - 4 * gap) / 2;
+            let colour = if lit { colour } else { stand_dark };
+            f.fill_rect(x, box_y + (box_h - lamp) / 2, lamp, lamp, colour);
+        }
+        // the bowl, tilted to face the sky, with its feed arm and horn at the focus
+        let top = (box_y - mast_h) as f32;
+        let tilt = -0.5_f32;
+        let r = 3.3 * u;
+        let tones = [ink.highlight(colour, 0.35), colour, ink.shadow(colour, 0.4)];
+        bowl_shape(f, (cx, top), r, tilt, tones);
+        // the feed sits on the bowl's axis, above its open face
+        let feed = ink.soften(pal.muted, 0.15);
+        let (ax, ay) = (tilt.sin(), -tilt.cos());
+        let (fx, fy) = (cx + ax * r * 0.95, top + ay * r * 0.95);
+        f.line(
+            (cx.round() as i32, top.round() as i32),
+            (fx.round() as i32, fy.round() as i32),
+            feed,
+        );
+        f.disc(fx, fy, (0.45 * u).max(0.6), feed);
+    }
+}
+
+/// A dish bowl seen from the side: a parabola of half-width `r` around its lowest point
+/// `vertex`, turned by `tilt` radians: `tones` are the lit face along the open side, the body
+/// and the shaded back.
+fn bowl_shape(f: &mut Field, vertex: (f32, f32), r: f32, tilt: f32, tones: [Rgb; 3]) {
+    let [face, rim, back] = tones;
+    let depth = r * 0.7;
+    let thick = (r * 0.2).max(0.8);
+    let reach = (r + depth).ceil() as i32 + 1;
+    let (sin, cos) = tilt.sin_cos();
+    let (x0, y0) = (vertex.0.floor() as i32, vertex.1.floor() as i32);
+    for y in y0 - reach..=y0 + reach {
+        for x in x0 - reach..=x0 + reach {
+            let (dx, dy) = (x as f32 + 0.5 - vertex.0, y as f32 + 0.5 - vertex.1);
+            // into the bowl's own frame: across the bowl and up out of it
+            let across = dx * cos + dy * sin;
+            let up = -(-dx * sin + dy * cos);
+            if across.abs() > r {
+                continue;
+            }
+            let curve = depth * (across / r).powi(2);
+            if up < curve || up > depth {
+                continue;
+            }
+            // the lit dish face along the open side, the back of the bowl shaded
+            let colour = if up > depth - thick {
+                face
+            } else if up < curve + thick && across > 0.0 {
+                back
+            } else {
+                rim
+            };
+            f.set(x, y, colour);
+        }
+    }
+}
+
 impl Game for ArrayGuard {
     fn info(&self) -> &'static Info {
         &INFO
@@ -177,6 +468,12 @@ impl Game for ArrayGuard {
 
     fn natural_size(&self) -> Option<(i32, i32)> {
         Some((W + 2, H + 2))
+    }
+
+    /// The field grows with the window by itself, so a large window gets finer pixel art
+    /// instead of a doubled small drawing.
+    fn zoomable(&self) -> bool {
+        false
     }
 
     fn key(&mut self, key: Key, fx: &mut Fx) {
@@ -332,8 +629,15 @@ impl Game for ArrayGuard {
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
         let panel_w = if area.w >= W + 2 + 2 + 22 { 22 } else { 0 };
-        let r = area.centre(W + 2 + 2 + panel_w, H + 2);
-        let field = Rect::new(r.x, r.y, W + 2, H + 2);
+        // the field grows with the window, keeping its grid; a small window keeps scale one
+        let room = (
+            area.w - 2 - if panel_w > 0 { panel_w + 2 } else { 0 },
+            area.h - 2,
+        );
+        let k = fit(room, W, H, 3.0);
+        let (fw, fh) = ((W as f32 * k).round() as i32, (H as f32 * k).round() as i32);
+        let r = area.centre(fw + 2 + 2 + panel_w, fh + 2);
+        let field = Rect::new(r.x, r.y, fw + 2, fh + 2);
         c.titled(
             field,
             Line::Heavy,
@@ -341,80 +645,16 @@ impl Game for ArrayGuard {
             &format!("Wave {}", self.wave),
             pal.bright,
         );
-        let at = |x: f32, y: f32| {
-            (
-                field.x + 1 + x.round() as i32,
-                field.y + 1 + y.round() as i32,
-            )
-        };
-        // a few fixed stars, so the field reads as sky
-        for i in 0..14 {
-            let x = (i * 17 + 5) % W;
-            let y = (i * 7 + 2) % (H - 4);
-            c.put(field.x + 1 + x, field.y + 1 + y, '·', pal.muted);
+        let inner = Rect::new(field.x + 1, field.y + 1, fw, fh);
+        let ink = Ink::new(pal);
+        let mut f = Field::new(pal, inner, ink.back());
+        self.paint_field(&mut f, &ink, Scale(k));
+        f.paint(c);
+        // the capsule letters are text, set on the capsule's own pale face
+        for (col, row, _, p) in self.capsule_cells(Scale(k)) {
+            c.put(inner.x + col, inner.y + row, p.letter(), pal.magenta);
         }
-        for i in 0..DISHES {
-            let x = field.x + 1 + dish_x(i);
-            let y = field.y + H;
-            if self.lost[i] {
-                c.text(x, y, "╳╳╳", pal.muted);
-                continue;
-            }
-            let colour = match self.shields[i] {
-                3 => pal.green,
-                2 => pal.cyan,
-                1 => pal.yellow,
-                _ => pal.warning,
-            };
-            c.text(x, y, &format!("▟{}▙", g('◎', 'O')), colour);
-            // the shield as a bar over the dish, one segment for each point left
-            let arcs: String = (0..3)
-                .map(|k| if k < self.shields[i] { '─' } else { ' ' })
-                .collect();
-            c.text(x, y - 1, &arcs, colour);
-        }
-        for x in 0..W {
-            c.put(field.x + 1 + x, field.y + 1 + RAIL + 1, '┄', pal.muted);
-        }
-        let tx = field.x + 1 + self.turret;
-        c.text(
-            tx,
-            field.y + 1 + RAIL,
-            &format!("◢{}◣", g('▲', '^')),
-            pal.info,
-        );
-        for &(x, y, _) in &self.shots {
-            let (sx, sy) = at(x, y);
-            c.put(sx, sy, '│', pal.bright);
-        }
-        for rock in &self.rocks {
-            let (x, y) = at(rock.x, rock.y);
-            let (glyph, colour) = if rock.hp >= 2 {
-                (g('◆', '#'), pal.red)
-            } else {
-                (g('◇', 'o'), pal.yellow)
-            };
-            c.put(x, y, glyph, colour);
-        }
-        for &(x, y, p) in &self.capsules {
-            let (cx, cy) = at(x, y);
-            c.text(cx - 1, cy, &format!("[{}]", p.letter()), pal.magenta);
-        }
-        // a burst is a ring that grows in three still steps over a third of a second
-        for &(x, y, t) in &self.bursts {
-            let (bx, by) = at(x, y);
-            let step = (t / BURST * 3.0) as i32;
-            match step {
-                0 => c.put(bx, by, '∙', pal.bright),
-                1 => c.put(bx, by, g('○', 'o'), pal.bright),
-                _ => {
-                    for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-                        c.put(bx + dx, by + dy, '·', pal.bright);
-                    }
-                }
-            }
-        }
-        let p = Rect::new(field.x + field.w + 2, field.y, panel_w, H + 2);
+        let p = Rect::new(field.x + field.w + 2, field.y, panel_w, field.h);
         if panel_w == 0 {
             return;
         }
@@ -456,7 +696,7 @@ impl Game for ArrayGuard {
         }
         c.text(
             p.x + 2,
-            p.y + H,
+            p.y + p.h - 2,
             &format!(
                 "{} ◆ {} ◇",
                 self.rocks.iter().filter(|r| r.hp >= 2).count(),

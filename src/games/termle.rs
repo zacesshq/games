@@ -11,6 +11,7 @@ use zacess_scenes::colour::Rgb;
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink, text_on};
 use crate::scores::Scores;
 use crate::sound::Sfx;
 use crate::term::Key;
@@ -371,6 +372,11 @@ impl Game for Termle {
         &INFO
     }
 
+    fn zoomable(&self) -> bool {
+        // the tiles grow with the window themselves, so the letters keep their spacing
+        false
+    }
+
     fn animated(&self) -> bool {
         false
     }
@@ -400,9 +406,16 @@ impl Game for Termle {
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
         let n = self.answer.len() as i32;
-        let tile = 5;
+        // the tiles grow with the window: rows a guess apart and the width of a tile, with
+        // room kept for the clue panel
+        let pitch = ((area.h - 3) / TRIES as i32).clamp(2, 5);
+        let face_w = (4..=4 + 2 * (pitch - 2))
+            .rev()
+            .find(|&w| n * (w + 1) + 4 + 2 + 26 <= area.w)
+            .unwrap_or(4);
+        let tile = face_w + 1;
         let board_w = (n * tile + 4).max(36);
-        let board_h = TRIES as i32 * 2 + 3;
+        let board_h = TRIES as i32 * pitch + 3;
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
         let panel_w = if area.w >= board_w + 2 + 26 { 26 } else { 0 };
@@ -415,42 +428,69 @@ impl Game for Termle {
             None => "Practice".into(),
         };
         c.titled(board, Line::Heavy, pal.yellow, &title, pal.bright);
-        let x0 = board.x + (board_w - n * tile) / 2;
+        let x0 = board.x + (board_w - n * tile + 1) / 2;
+        let ink = Ink::new(pal);
+        let inner = Rect::new(board.x + 1, board.y + 1, board_w - 2, board_h - 2);
+        let all_text = [pal.text, pal.muted, pal.green, pal.yellow, pal.bright];
+        let mut layer = Field::new(pal, inner, ink.under(pal.yellow, 0.05, &all_text));
+        let mut letters: Vec<(i32, i32, char, Option<Mark>, bool)> = Vec::new();
         for row in 0..TRIES {
-            let y = board.y + 2 + row as i32 * 2;
+            let y0 = board.y + 2 + row as i32 * pitch;
+            let current = row == self.guesses.len() && self.done.is_none();
             for i in 0..n {
                 let x = x0 + i * tile;
                 let (ch, m): (char, Option<Mark>) =
                     if let Some((guess, marks)) = self.guesses.get(row) {
                         (guess[i as usize], Some(marks[i as usize]))
-                    } else if row == self.guesses.len() && self.done.is_none() {
+                    } else if current {
                         (self.typing.get(i as usize).copied().unwrap_or(' '), None)
                     } else {
                         (' ', None)
                     };
-                let colour: Rgb = match m {
-                    Some(Mark::Here) => pal.green,
-                    Some(Mark::Left | Mark::Right) => pal.yellow,
-                    Some(Mark::Absent) => pal.muted,
-                    None => pal.text,
-                };
-                let current = row == self.guesses.len() && self.done.is_none();
-                let (open, close) = match m {
-                    Some(Mark::Here) => ('[', ']'),
-                    Some(_) => (' ', ' '),
-                    None if current => ('‹', '›'),
-                    None => (' ', ' '),
-                };
-                if ch == ' ' && m.is_none() {
-                    c.put(x + 1, y, '_', if current { pal.text } else { pal.muted });
-                } else {
-                    c.put(x, y, open, colour);
-                    c.put(x + 1, y, ch, colour);
-                    c.put(x + 2, y, close, colour);
-                    if let Some(m) = m {
-                        c.put(x + 3, y, mark_glyph(m), colour);
+                // each letter sits on a tile: a face the letter is written on and a lip below in
+                // the mark's own colour, solid where the tile carries news
+                let (hue, face_amount, lip) = match m {
+                    Some(Mark::Here) => (pal.green, 0.4, Some(ink.solid(pal.green))),
+                    Some(Mark::Left | Mark::Right) => {
+                        (pal.yellow, 0.4, Some(ink.solid(pal.yellow)))
                     }
-                }
+                    Some(Mark::Absent) => (pal.muted, 0.2, None),
+                    None if current => (pal.text, 0.14, Some(ink.solid(pal.text))),
+                    None => (pal.muted, 0.1, None),
+                };
+                let face = ink.under(hue, face_amount, &all_text);
+                let lip = lip.unwrap_or_else(|| ink.tint(hue, face_amount + 0.25));
+                // the face spreads evenly round the letter's row, with the lip under it
+                let extra = pitch - 2;
+                let top = 2 * (y0 - inner.y);
+                let letter = top + 2 * ((extra + 1) / 2);
+                let (lx, face_top) = (x - inner.x, letter - extra);
+                let face_h = 2 + 2 * extra;
+                layer.px.fill_rect(lx, face_top, face_w, face_h, face);
+                layer.px.fill_rect(lx, face_top + face_h, face_w, 1, lip);
+                let y = inner.y + letter / 2;
+                letters.push((x + (face_w - 4) / 2, y, ch, m, current));
+            }
+        }
+        layer.paint(c);
+        for (x, y, ch, m, current) in letters {
+            let colour: Rgb = match m {
+                Some(Mark::Here) => pal.green,
+                Some(Mark::Left | Mark::Right) => pal.yellow,
+                Some(Mark::Absent) => pal.muted,
+                None => pal.text,
+            };
+            let (open, close) = match m {
+                Some(Mark::Here) => ('[', ']'),
+                Some(_) => (' ', ' '),
+                None if current => ('‹', '›'),
+                None => (' ', ' '),
+            };
+            if ch == ' ' && m.is_none() {
+                text_on(c, x + 1, y, "_", if current { pal.text } else { pal.muted });
+            } else {
+                let mark = m.map_or(' ', mark_glyph);
+                text_on(c, x, y, &format!("{open}{ch}{close}{mark}"), colour);
             }
         }
         // the panel: the clue, the reveal and the letters tried

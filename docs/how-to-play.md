@@ -29,10 +29,10 @@ Keep both wells clear for as long as possible by joining rows of wire from rail 
 
 ### Rules
 
-- Pieces of one to three circuit parts fall into one of two wells. Each part carries wire across (━), up and down (┃) or both (╋).
+- Pieces of one to three circuit parts fall into one of two wells. Each part is a chip whose copper carries wire across, up and down or both, so its shape shows which.
 - Turning a piece turns it and its parts: an across part becomes upright and back.
-- A full row clears only when every part in it carries wire across, joining the + rail on the left to the - rail on the right. A full row that will not clear is marked ✕ at both ends.
-- Each clear pushes a feedback row (───) into the bottom of the other well. It has one break (×) that a part carrying wire across can fill.
+- A full row clears only when every part in it carries wire across, joining the + rail on the left to the - rail on the right. A full row that will not clear is marked with a cross on both rails.
+- Each clear pushes a feedback row of wire into the bottom of the other well. It has one break, marked with a small cross, that a part carrying wire across can fill.
 - Tab moves the falling piece to the other well, if it fits there.
 
 ### Scoring
@@ -143,8 +143,8 @@ Catch every note of a calm song as it reaches the line.
 
 ### Rules
 
-- Notes drift left along three lanes: high (▲), middle (●) and low (▼).
-- Press a note's lane key as it crosses the line on the left. A caught note plays its tone and leaves a ring.
+- Notes drift left along three lanes: high notes point up, middle notes are round and low notes point down.
+- Press a note's lane key as it crosses the outline of its shape on the left. A caught note plays its tone, fills the outline and leaves a soft glow.
 - A press with no note near costs nothing. A note that passes the line is missed.
 
 ### Scoring
@@ -175,14 +175,14 @@ Start it with `zacess-games trace`.
 
 ### Goal
 
-Light every node on the board by running wire to it from the source (◆).
+Light every node on the board by running wire to it from the source, the diamond.
 
 ### Rules
 
 - The pen starts at the source. Each arrow lays one cell of wire from the pen.
 - Entering a node lights it. A lit node is a junction: Tab moves the pen to the next lit point so a new wire can branch from it.
-- Wires never cross or share a cell, except on a via (┼), where one wire may run straight across another.
-- Arrow nodes (△ ▽ ◁ ▷) only take wire arriving the way they point.
+- Wires never cross or share a cell, except on a via (a small cross), where one wire may run straight across another.
+- Arrow nodes are triangles and only take wire arriving the way they point.
 - Each level has a wire budget.
 
 ### Scoring
@@ -218,7 +218,7 @@ Float a lantern over a quiet landscape and gather motes of light.
 ### Rules
 
 - The land scrolls slowly past. Arrows give the lantern a gentle push and it glides to a stop.
-- Touching a mote (✧) gathers it with a soft note and the lantern's halo grows.
+- Touching a mote (a spark of light, which is a small butterfly on a light theme) gathers it with a soft note and the lantern's halo grows.
 - The hills only lift the lantern; nothing can harm it.
 
 ### Scoring
@@ -256,7 +256,7 @@ Fix every fault in the six rooms of a broken server before its uptime runs out.
 - Walk onto a part to pick it up. Hands hold two parts; D drops one.
 - Walk into a fault holding the matching part to fix it (✓).
 - When every fault in a room is fixed its doors open and you can walk through to the next room. The map shows the rooms fixed.
-- Glitches (g) wander the racks. One that walks into you costs 8% uptime. Walking into a glitch clears it.
+- Glitches, knots of noise, wander the racks. One that walks into you costs 8% uptime. Walking into a glitch clears it.
 
 ### Scoring
 
@@ -290,8 +290,8 @@ Steer a packet to collect every data bit (•) and then reach the exit (⇥), in
 ### Rules
 
 - Each arrow moves the packet one cell. W waits a move in place.
-- x gates are open on even moves and y gates on odd moves. The board shows each gate as it will be for your next move: open ┊ or shut █.
-- Portals with the same letter, such as (A), are linked: step into one to come out of the other.
+- x gates are open on even moves and y gates on odd moves. The board shows each gate as it will be for your next move: a dashed line when open and solid bars when shut.
+- Portals are rings with a letter. Two with the same letter, such as A, are linked: step into one to come out of the other.
 - Arrow tiles can only be entered moving the way they point.
 - The exit opens once every bit is collected.
 
@@ -327,9 +327,9 @@ Score as many goals as you can from five attacks.
 
 ### Rules
 
-- Your three attackers are (1), (2) and (3); the one with the ball shows ●. Three defenders (✕) and a keeper ([K]) stand in the way.
+- Your three attackers wear 1, 2 and 3 on their shirts; the one with the ball has it at their feet. Three defenders in plain striped shirts and a keeper (K) stand in the way.
 - Each turn you do one thing: run one cell with the ball, pass or shoot.
-- A pass goes to the teammate marked <2> (Tab picks another). It only goes if no defender stands in the straight lane between you; the lane is dotted when open.
+- A pass goes to the teammate standing in the ring (Tab picks another). It only goes if no defender stands in the straight lane between you; the lane shows bold dots when open and faint specks when blocked.
 - Shoot with 1, 2 or 3 at the top, middle or low row of goal, from column 9 on. A defender in the way blocks it. The keeper covers its own row. From outside the box it covers the rows either side too.
 - After your turn your teammates run forward, the nearest defender presses the ball and the others step into the passing lanes. A defender reaching the ball wins it.
 - Each attack has a shot clock of 12 turns.
@@ -366,8 +366,8 @@ Drive as far as you can on one tank of fuel at a time.
 
 ### Rules
 
-- Your car (▗▲▲▖) drives up a four-lane road past slower traffic.
-- Fuel burns faster the faster you go. Close behind another car, in its slipstream (≈), it burns at well under half.
+- Your car, the one with a light stripe down its middle, drives up a four-lane road past slower traffic.
+- Fuel burns faster the faster you go. Close behind another car, in its slipstream (streaks of air run past your car), it burns at well under half.
 - The pit lane on the right (P) refills the tank, but holds the car to pit speed.
 - Running into a car is a bump: you slow down and the car moves on.
 
@@ -402,10 +402,10 @@ Protect a row of five satellite dishes from drifting debris for as many waves as
 
 ### Rules
 
-- Your turret (◢▲◣) runs along the rail above the dishes and fires straight up.
-- Small debris (◇) breaks with one shot. Large debris (◆) takes two and shows ◇ after the first.
-- Debris that reaches the bottom hits the nearest dish. Each dish has a shield of three, drawn as a bar over it. A dish with no shield left is lost to the next hit (╳).
-- Capsules drift down now and then. Shoot one to collect it: [S] spread shot for ten seconds, [H] one shield back on every dish and [L] a slow field for eight seconds.
+- Your cannon runs along the rail behind the dishes and fires straight up.
+- Small debris breaks with one shot. Large debris is a bigger rock that takes two and shrinks to a small one after the first.
+- Debris that reaches the bottom hits the nearest dish. Each dish has a shield of three, shown as lamps on its cabinet and as a bar in the panel. A dish with no shield left is lost to the next hit and its bowl falls from the mast.
+- Capsules drift down now and then, each with its letter on its face. Shoot one to collect it: S a spread shot for ten seconds, H one shield back on every dish and L a slow field for eight seconds.
 - A wave ends when its debris is cleared. The next one brings a little more.
 
 ### Scoring

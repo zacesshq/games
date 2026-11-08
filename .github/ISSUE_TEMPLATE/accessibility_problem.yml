@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for telling us. We treat an accessibility problem as a bug. You never need to share a diagnosis or anything personal: describe what happened and we will work from that. If you would rather report privately, email contact@zacess.com.
+        Thank you for telling us. We treat an accessibility problem as a bug. You never need to share a diagnosis or anything personal: describe what happened and we will work from that. If you would rather report privately, email support@zacess.com.
   - type: dropdown
     id: game
     attributes:
@@ -46,6 +46,8 @@ body:
         - Zacess High Contrast Light
         - Zacess Deep Contrast Dark
         - Zacess Deep Contrast Light
+        - Zacess Warm Dark
+        - Zacess Warm Light
         - NO_COLOR
   - type: dropdown
     id: area
@@ -84,7 +86,7 @@ body:
     id: version
     attributes:
       label: Version and terminal (optional)
-      placeholder: 0.1.0, Windows Terminal 1.23
+      placeholder: 1.0.0, Windows Terminal 1.23
   - type: dropdown
     id: ai-use
     attributes:

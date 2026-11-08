@@ -7,6 +7,7 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
@@ -26,7 +27,7 @@ pub const INFO: Info = Info {
         "- Walk onto a part to pick it up. Hands hold two parts; D drops one.",
         "- Walk into a fault holding the matching part to fix it (✓).",
         "- When every fault in a room is fixed its doors open and you can walk through to the next room. The map shows the rooms fixed.",
-        "- Glitches (g) wander the racks. One that walks into you costs 8% uptime. Walking into a glitch clears it.",
+        "- Glitches, knots of noise, wander the racks. One that walks into you costs 8% uptime. Walking into a glitch clears it.",
         "# Scoring",
         "100 points for each fault, 200 more for each room, 50 for each new room reached and 20 for each glitch cleared. Fixing every room adds 10 points for each percent of uptime left.",
         "# Winning and losing",
@@ -364,6 +365,11 @@ impl Game for Rooms {
         &INFO
     }
 
+    /// The tiles grow with the window by themselves.
+    fn zoomable(&self) -> bool {
+        false
+    }
+
     fn animated(&self) -> bool {
         false
     }
@@ -381,10 +387,17 @@ impl Game for Rooms {
 
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
-        let cw = 2;
-        // the room's walls are the frame itself; doors are set into it
+        // the room's walls are the frame itself; doors are set into it. Each tile grows to the
+        // largest size that still leaves room for the panel, keeping square pixels where it can
+        let fits = |cw: i32, ch: i32| {
+            (RW as i32 - 2) * cw + 2 + 24 <= area.w && (RH as i32 - 2) * ch + 2 <= area.h
+        };
+        let (cw, ch) = [(8, 4), (6, 3), (4, 2), (3, 2)]
+            .into_iter()
+            .find(|&(w, h)| fits(w, h))
+            .unwrap_or((2, 1));
         let room_w = (RW as i32 - 2) * cw + 2;
-        let room_h = RH as i32;
+        let room_h = (RH as i32 - 2) * ch + 2;
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
         let panel_w = if area.w >= room_w + 2 + 22 { 22 } else { 0 };
@@ -399,7 +412,100 @@ impl Game for Rooms {
             pal.bright,
         );
         let cell_x = |x: usize| frame.x + 1 + (x as i32 - 1) * cw;
-        let cell_y = |y: usize| frame.y + y as i32;
+        let cell_y = |y: usize| match y {
+            0 => frame.y,
+            y if y == RH - 1 => frame.y + room_h - 1,
+            y => frame.y + 1 + (y as i32 - 1) * ch,
+        };
+        let ink = Ink::new(pal);
+        let inner = Rect::new(frame.x + 1, frame.y + 1, room_w - 2, room_h - 2);
+        let mut f = Field::new(pal, inner, ink.back());
+        let (tw, th) = (cw, 2 * ch);
+        let big = tw >= 6;
+        // a raised floor of quiet panels, racks as cabinets with drive slots and a still status
+        // light; a framed tint goes under any tile that carries a letter
+        let floor = [ink.surface(pal.blue, 0.05), ink.surface(pal.blue, 0.09)];
+        let seam = ink.surface(pal.blue, 0.16);
+        let (rack_top, rack, rack_low) = (
+            ink.soften(pal.blue, 0.25),
+            ink.soften(pal.blue, 0.45),
+            ink.soften(pal.blue, 0.7),
+        );
+        let led = ink.highlight(pal.green, 0.2);
+        for y in 1..RH - 1 {
+            for x in 1..RW - 1 {
+                let (px, py) = ((x as i32 - 1) * tw, (y as i32 - 1) * th);
+                let tile = self.room().tiles[y][x];
+                let marked = match tile {
+                    Tile::Fault(_) => Some(pal.error),
+                    Tile::Fixed => Some(pal.green),
+                    Tile::Part(_) => Some(pal.yellow),
+                    _ => None,
+                };
+                f.fill_rect(px, py, tw, th, floor[(x + y) % 2]);
+                if big {
+                    f.fill_rect(px, py + th - 1, tw, 1, seam);
+                    f.fill_rect(px + tw - 1, py, 1, th, seam);
+                }
+                if let Some(colour) = marked {
+                    if big {
+                        f.fill_rect(px, py, tw, th, ink.soften(colour, 0.3));
+                        f.fill_rect(px + 1, py + 1, tw - 2, th - 2, ink.surface(colour, 0.35));
+                        // the text row is kept plain so the letter keeps its contrast
+                        let row = 2 * (ch / 2);
+                        f.fill_rect(px, py + row, tw, 2, ink.surface(colour, 0.35));
+                    } else {
+                        f.fill_rect(px, py, tw, th, ink.surface(colour, 0.35));
+                    }
+                }
+                if tile == Tile::Rack {
+                    if th >= 4 {
+                        f.fill_rect(px, py, tw, th, rack);
+                        f.fill_rect(px, py, tw, 1, rack_top);
+                        for k in (2..th - 1).step_by(2) {
+                            f.fill_rect(px + 1, py + k, tw - 2, 1, rack_low);
+                        }
+                        f.fill_rect(px + tw - 1, py, 1, th, rack_low);
+                        if (x + 2 * y) % 2 == 0 {
+                            f.set(px + tw - 2, py + 1, led);
+                        }
+                    } else {
+                        f.fill_rect(px, py, tw, th / 2, rack_top);
+                        f.fill_rect(px, py + th / 2, tw, th - th / 2, rack_low);
+                        if (x + 2 * y) % 3 == 0 {
+                            f.set(px + 1, py, led);
+                        }
+                    }
+                }
+            }
+        }
+        // a glitch is a still knot of noise
+        let (noise, spark) = (pal.magenta, ink.highlight(pal.magenta, 0.45));
+        for &(gx, gy) in &self.room().glitches {
+            let (px, py) = ((gx as i32 - 1) * tw, (gy as i32 - 1) * th);
+            let inset = i32::from(big);
+            for dy in inset..th - inset {
+                for dx in inset..tw - inset {
+                    let hash = (dx * 7 + dy * 13 + (dx * dy) % 5) % 3;
+                    f.set(px + dx, py + dy, if hash == 0 { spark } else { noise });
+                }
+            }
+        }
+        // on large tiles the player is a small technician rather than a letter
+        let (ppx, ppy) = self.pos;
+        if big {
+            let (px, py) = ((ppx as i32 - 1) * tw, (ppy as i32 - 1) * th);
+            let rows: &[&str] = if tw >= 8 {
+                &[
+                    "...hh...", "...hh...", "..bbbb..", ".bbbbbb.", ".b.bb.b.", "...bb...",
+                    "..b..b..", "..b..b..",
+                ]
+            } else {
+                &["..hh..", ".bbbb.", "b.bb.b", "..bb..", ".b..b.", ".b..b."]
+            };
+            f.sprite(px, py, rows, &[('h', pal.bright), ('b', pal.accent)]);
+        }
+        f.paint(c);
         for y in 0..RH {
             for x in 0..RW {
                 let tile = self.room().tiles[y][x];
@@ -411,11 +517,15 @@ impl Game for Rooms {
                         } else {
                             frame.x + frame.w - 1
                         };
-                        c.put(fx, cell_y(y), if fixed { g('⇋', '=') } else { '▌' }, colour);
+                        for k in 0..ch {
+                            let glyph = if fixed { g('⇋', '=') } else { '▌' };
+                            c.put(fx, cell_y(y) + k, glyph, colour);
+                        }
                     } else {
                         let glyph = if fixed { g('⇅', '=') } else { '▀' };
-                        c.put(cell_x(x), cell_y(y), glyph, colour);
-                        c.put(cell_x(x) + 1, cell_y(y), glyph, colour);
+                        for k in 0..cw {
+                            c.put(cell_x(x) + k, cell_y(y), glyph, colour);
+                        }
                     }
                     continue;
                 }
@@ -423,24 +533,26 @@ impl Game for Rooms {
                     continue;
                 }
                 let (a, b, colour) = match tile {
-                    Tile::Floor => ('·', ' ', pal.muted),
-                    Tile::Rack => ('▤', '▤', pal.blue),
                     Tile::Fault(k) => (k.letter().to_ascii_uppercase(), '!', pal.error),
                     Tile::Fixed => (g('✓', '+'), ' ', pal.green),
                     Tile::Part(k) => (k.letter(), ' ', pal.yellow),
-                    Tile::Wall | Tile::Door => ('▓', '▓', pal.muted),
+                    _ => continue,
                 };
-                c.put(cell_x(x), cell_y(y), a, colour);
-                c.put(cell_x(x) + 1, cell_y(y), b, colour);
+                let (tx, ty) = (cell_x(x) + (cw - 2) / 2, cell_y(y) + ch / 2);
+                c.put(tx, ty, a, colour);
+                if b != ' ' {
+                    c.put(tx + 1, ty, b, colour);
+                }
             }
         }
-        for &(gx, gy) in &self.room().glitches {
-            c.put(cell_x(gx), cell_y(gy), 'g', pal.magenta);
-            c.put(cell_x(gx) + 1, cell_y(gy), g('≈', '~'), pal.magenta);
+        if !big {
+            c.put(
+                cell_x(ppx) + (cw - 2) / 2,
+                cell_y(ppy) + ch / 2,
+                '@',
+                pal.bright,
+            );
         }
-        let (px, py) = self.pos;
-        c.put(cell_x(px), cell_y(py), '@', pal.bright);
-        c.put(cell_x(px) + 1, cell_y(py), ' ', pal.bright);
 
         // the panel: uptime, hands and a map of the rooms
         let p = Rect::new(frame.x + room_w + 2, frame.y, panel_w, room_h.max(15));

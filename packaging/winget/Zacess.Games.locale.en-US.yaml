@@ -1,6 +1,6 @@
-# winget default locale manifest for Zacess Games 0.4.0.
+# winget default locale manifest for Zacess Games 1.0.0.
 PackageIdentifier: Zacess.Games
-PackageVersion: 0.4.0
+PackageVersion: 1.0.0
 PackageLocale: en-US
 Publisher: Zacess
 PublisherUrl: https://zacess.com
@@ -10,12 +10,12 @@ PackageUrl: https://github.com/zacesshq/games
 License: MIT
 LicenseUrl: https://github.com/zacesshq/games/blob/main/LICENSE
 ShortDescription: Fourteen original games for the terminal in the Zacess high contrast themes
-Description: Fourteen original terminal games, from a falling-parts puzzle to a typing trainer and a learn-to-code course, drawn in the eight Zacess high contrast themes. Every colour keeps 4.5 to 1 contrast on the background, nothing flashes and reduced motion is honoured from the Windows setting.
+Description: Fourteen original terminal games, from a falling-parts puzzle to a typing trainer and a learn-to-code course, drawn in the ten Zacess high contrast themes. Every colour keeps 4.5 to 1 contrast on the background, nothing flashes and reduced motion is honoured from the Windows setting.
 Moniker: zacess-games
 Tags:
   - accessibility
   - games
   - terminal
-ReleaseNotesUrl: https://github.com/zacesshq/games/releases/tag/v0.4.0
+ReleaseNotesUrl: https://github.com/zacesshq/games/releases/tag/v1.0.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

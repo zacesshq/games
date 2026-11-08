@@ -7,6 +7,7 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, Tier, g};
@@ -331,13 +332,16 @@ impl Game for Heatsink {
         let pal = c.pal;
         // a large window gives the board its width; otherwise it keeps a readable size
         let w = area.w.min(if c.tier == Tier::Large { 150 } else { 76 });
-        let h = PIPES as i32 * 2 + 3;
+        // the pipes spread apart and thicken when there is height for it; the words still run
+        // along one text row each
+        let sp = ((area.h - 6) / 4).clamp(2, if c.tier == Tier::Large { 6 } else { 4 });
+        let h = (PIPES as i32 - 1) * sp + 5;
         let r = area.centre(w, h + 2);
         let frame = Rect::new(r.x, r.y, w, h);
         c.titled(frame, Line::Heavy, pal.accent, "Board", pal.bright);
-        // the chip: a package with legs, its heat written beside it
         let chip_x = frame.x + 2;
         let top = frame.y + 2;
+        let last = top + (PIPES as i32 - 1) * sp;
         let hot = (self.heat - AMBIENT) / (LIMIT - AMBIENT);
         let chip_colour = if hot > 0.7 {
             pal.warning
@@ -346,22 +350,84 @@ impl Game for Heatsink {
         } else {
             pal.green
         };
-        for row in 0..(PIPES as i32 * 2 - 1) {
-            c.put(chip_x, top + row, '┤', pal.muted);
-            c.text(chip_x + 1, top + row, "███", chip_colour);
-            c.put(chip_x + 4, top + row, '├', pal.muted);
-        }
-        c.text(chip_x + 1, top + PIPES as i32 - 1, "U1", pal.bright);
-        let field_x = chip_x + 6;
-        let field_w = frame.w - 9 - 10;
-        for p in 0..PIPES {
-            let y = top + p as i32 * 2;
-            for x in (field_x..field_x + field_w).step_by(3) {
-                c.put(x, y, '┄', pal.muted);
+        let chip_w = 5 + 2 * (sp - 2);
+        let field_x = chip_x + chip_w + 1;
+        let field_w = frame.w - (field_x - frame.x) - 11;
+        let gx = frame.x + frame.w - 8;
+        let board = Rect::new(frame.x + 1, frame.y + 1, frame.w - 2, frame.h - 2);
+        let ink = Ink::new(pal);
+        let back = ink.surface(pal.green, 0.18);
+        let mut f = Field::new(pal, board, back);
+        let local = |x: i32, row: i32| (x - board.x, 2 * (row - board.y));
+        // a few short traces on the board between the pipes, still and faint; no text lands
+        // there, so they may be stronger than the board itself
+        let via = ink.mix(back, ink.soften(pal.green, 0.6), 0.3);
+        for p in 0..PIPES as i32 - 1 {
+            let (_, y) = local(field_x, top + sp * p);
+            let mid = y + sp;
+            for k in 0..2 {
+                let x = (field_x - board.x) + (2 * k + 1) * field_w / 4 - 3 + (p * 7) % 11 - 5;
+                if x + 6 < (gx - board.x) - 2 {
+                    f.fill_rect(x, mid, 6, 1, via);
+                    f.set(x + 6, mid, ink.soften(pal.green, 0.5));
+                }
             }
         }
+        // the heat pipes: a copper band under the words, a lit upper edge and a shaded lower
+        // one that warms towards the chip
+        let copper = ink.surface(pal.yellow, 0.3);
+        let lit = ink.soften(pal.yellow, 0.55);
+        let (rim_far, rim_near) = (ink.soften(pal.yellow, 0.3), ink.soften(pal.red, 0.3));
+        let (x0, x1) = (field_x - 1 - board.x, field_x + field_w + 1 - board.x);
+        let edge = (sp - 2).clamp(0, 2);
+        for p in 0..PIPES as i32 {
+            let (_, y) = local(field_x, top + sp * p);
+            for x in x0..x1 {
+                let near = 1.0 - (x - x0) as f32 / (x1 - x0) as f32;
+                let rim = ink.step(rim_far, rim_near, near * near, 6);
+                f.fill_rect(x, y - edge, 1, edge, lit);
+                f.fill_rect(x, y, 1, 2, copper);
+                f.fill_rect(x, y + 2, 1, edge.max(1), rim);
+            }
+            // a rounded end cap where the words come in
+            f.fill_rect(x1, y - edge, 1 + edge / 2, 2 + 2 * edge, rim_far);
+        }
+        // the chip: a package with pins down both sides, a window showing the die in its heat
+        // colour and a plain band for its label
+        let (cx, cy) = local(chip_x, top);
+        let (_, ly) = local(chip_x, last);
+        let rows = ly + 2 - cy;
+        let pin = ink.soften(pal.muted, 0.15);
+        let body = ink.surface(chip_colour, 0.3);
+        let outline = ink.soften(chip_colour, 0.2);
+        f.fill_rect(cx + 1, cy - 2, chip_w - 2, rows + 4, outline);
+        f.fill_rect(cx + 2, cy - 1, chip_w - 4, rows + 2, body);
+        // the notch that marks pin one
+        f.fill_rect(cx + chip_w / 2 - 1, cy - 2, 2 - chip_w % 2 + 1, 1, back);
+        let pin_len = 1 + (sp - 2) / 2;
+        for k in (1..rows).step_by(3) {
+            f.fill_rect(cx + 1 - pin_len, cy + k, pin_len, 1, pin);
+            f.fill_rect(cx + chip_w - 1, cy + k, pin_len, 1, pin);
+        }
+        if chip_w >= 7 {
+            let die = chip_w - 6;
+            let (_, mid) = local(chip_x, top + (PIPES as i32 - 1) * sp / 2);
+            f.fill_rect(cx + 3, cy + 2, die, mid - cy - 4, chip_colour);
+        }
+        let label_row = top + (PIPES as i32 - 1) * sp / 2;
+        let (_, label) = local(chip_x, label_row);
+        f.fill_rect(cx + 2, label, chip_w - 4, 2, body);
+        // the heat gauge: a tube that fills upwards over a round bulb
+        let (tx, _) = local(gx + 1, top);
+        let tube = ink.tint(pal.muted, 0.5);
+        let level = (hot.clamp(0.0, 1.0) * (rows - 2) as f32).round() as i32;
+        f.fill_rect(tx, cy, 2, rows - 2, tube);
+        f.fill_rect(tx, cy + rows - 2 - level, 2, level, chip_colour);
+        f.fill_rect(tx - 1, cy + rows - 2, 4, 2, chip_colour);
+        f.paint(c);
+        c.text(chip_x + chip_w / 2 - 1, label_row, "U1", pal.bright);
         for (i, d) in self.drops.iter().enumerate() {
-            let y = top + d.pipe as i32 * 2;
+            let y = top + d.pipe as i32 * sp;
             let x = field_x + (d.x / LANE * field_w as f32).round() as i32;
             let picked = self.target == Some(i);
             if picked {
@@ -376,24 +442,14 @@ impl Game for Heatsink {
                     pal.text
                 };
                 let shown = if k < d.typed && *ch == ' ' { '·' } else { *ch };
-                c.put(x + k as i32, y, shown, colour);
+                // a word comes out of the pipe's end a letter at a time
+                if x + (k as i32) <= field_x + field_w {
+                    c.put(x + k as i32, y, shown, colour);
+                }
             }
         }
-        // the heat gauge on the right, filling upwards, with the degrees written under it
-        let gx = frame.x + frame.w - 8;
         c.text(gx, frame.y + 1, "Heat", pal.muted);
-        let rows = PIPES as i32 * 2 - 1;
-        for row in 0..rows {
-            let filled = (hot * rows as f32).round() as i32 >= rows - row;
-            let (glyph, colour) = if filled {
-                ('█', chip_colour)
-            } else {
-                ('·', pal.muted)
-            };
-            c.put(gx + 1, top + row, glyph, colour);
-            c.put(gx + 2, top + row, glyph, colour);
-        }
-        c.text(gx, top + rows, &format!("{:.0}°C", self.heat), chip_colour);
+        c.text(gx, last + 1, &format!("{:.0}°C", self.heat), chip_colour);
         let mode = if self.calm {
             "Calm mode"
         } else {

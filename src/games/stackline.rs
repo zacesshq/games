@@ -7,9 +7,10 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink};
 use crate::sound::Sfx;
 use crate::term::Key;
-use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
+use crate::ui::{Canvas, Hue, Line, Palette, Rect, Status};
 
 pub const INFO: Info = Info {
     id: "stackline",
@@ -22,10 +23,10 @@ pub const INFO: Info = Info {
         "# Goal",
         "Keep both wells clear for as long as possible by joining rows of wire from rail to rail.",
         "# Rules",
-        "- Pieces of one to three circuit parts fall into one of two wells. Each part carries wire across (━), up and down (┃) or both (╋).",
+        "- Pieces of one to three circuit parts fall into one of two wells. Each part is a chip whose copper carries wire across, up and down or both, so its shape shows which.",
         "- Turning a piece turns it and its parts: an across part becomes upright and back.",
-        "- A full row clears only when every part in it carries wire across, joining the + rail on the left to the - rail on the right. A full row that will not clear is marked ✕ at both ends.",
-        "- Each clear pushes a feedback row (───) into the bottom of the other well. It has one break (×) that a part carrying wire across can fill.",
+        "- A full row clears only when every part in it carries wire across, joining the + rail on the left to the - rail on the right. A full row that will not clear is marked with a cross on both rails.",
+        "- Each clear pushes a feedback row of wire into the bottom of the other well. It has one break, marked with a small cross, that a part carrying wire across can fill.",
         "- Tab moves the falling piece to the other well, if it fits there.",
         "# Scoring",
         "100 points times the square of the rows cleared at once, times the chain: clears on pieces in a row raise the chain by one each. The pieces fall a little faster as rows clear.",
@@ -57,6 +58,11 @@ pub enum Part {
 impl Part {
     pub fn across(self) -> bool {
         matches!(self, Part::Across | Part::Cross | Part::Feedback)
+    }
+
+    /// Whether the part carries wire up and down.
+    pub fn upright(self) -> bool {
+        matches!(self, Part::Upright | Part::Cross)
     }
 
     fn turned(self) -> Part {
@@ -293,6 +299,11 @@ impl Game for Stackline {
         &INFO
     }
 
+    fn zoomable(&self) -> bool {
+        // the wells grow their own tiles with the window, which keeps the copper sharp
+        false
+    }
+
     fn key(&mut self, key: Key, fx: &mut Fx) {
         if self.over || self.clearing.is_some() {
             return;
@@ -385,9 +396,14 @@ impl Game for Stackline {
 
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
-        let cell = 3;
-        let well_w = W as i32 * cell + 2;
-        let well_h = H as i32 + 2;
+        // each part is a tile that grows with the window: as tall as the rows allow and a
+        // little wider than tall, with room left for the side panel
+        let size = Size::fit(area);
+        let (tile_w, tile_h, rail) = (size.w, size.h, size.rail);
+        let rows = (H as i32 * tile_h + 1) / 2;
+        let inner_w = W as i32 * tile_w + 2 * rail;
+        let well_w = inner_w + 2;
+        let well_h = rows + 2;
         let gap = 3;
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
@@ -402,110 +418,70 @@ impl Game for Stackline {
         for well in 0..2 {
             let wx = r.x + well as i32 * (well_w + gap);
             let frame = Rect::new(wx, r.y, well_w, well_h);
-            let colour = if active == Some(well) {
-                pal.cyan
-            } else {
-                pal.muted
-            };
+            let on = active == Some(well);
             let title = if well == 0 { "Well A" } else { "Well B" };
             c.titled(
                 frame,
-                if active == Some(well) {
-                    Line::Heavy
-                } else {
-                    Line::Light
-                },
-                colour,
+                if on { Line::Heavy } else { Line::Light },
+                if on { pal.cyan } else { pal.muted },
                 title,
-                if active == Some(well) {
-                    pal.bright
-                } else {
-                    pal.muted
-                },
+                if on { pal.bright } else { pal.muted },
             );
-            let clearing: &[usize] = match &self.clearing {
-                Some((w, rows, _)) if *w == well => rows,
-                _ => &[],
-            };
-            for y in 0..H {
-                let yy = r.y + 1 + y as i32;
-                // the rails: + on the left, - on the right
-                c.put(wx, yy, if y % 2 == 0 { '+' } else { '┃' }, pal.red);
-                c.put(
-                    wx + well_w - 1,
-                    yy,
-                    if y % 2 == 0 { '-' } else { '┃' },
-                    pal.blue,
-                );
-                let full = self.wells[well][y].iter().all(Option::is_some);
-                for x in 0..W {
-                    let cx = wx + 1 + x as i32 * cell;
-                    if clearing.contains(&y) {
-                        c.text(cx, yy, "═══", pal.bright);
-                        continue;
-                    }
-                    match self.wells[well][y][x] {
-                        Some(p) => draw_part(c, cx, yy, p, false),
-                        None if self.wells[well][y].contains(&Some(Part::Feedback)) => {
-                            c.text(cx, yy, &format!(" {} ", g('×', 'x')), pal.warning);
-                        }
-                        None => c.put(cx + 1, yy, '·', pal.muted),
-                    }
-                }
-                if full && !Self::joined(&self.wells[well][y]) && !clearing.contains(&y) {
-                    c.put(wx, yy, g('✕', 'x'), pal.warning);
-                    c.put(wx + well_w - 1, yy, g('✕', 'x'), pal.warning);
-                }
-                if clearing.contains(&y) {
-                    c.put(wx, yy, g('◆', '*'), pal.bright);
-                    c.put(wx + well_w - 1, yy, g('◆', '*'), pal.bright);
-                }
-            }
-            if let Some(p) = &self.piece
-                && p.well == well
-            {
-                // where the piece will land, drawn faintly so the drop can be planned
-                let mut ghost = p.clone();
-                while self.fits(&Piece {
-                    y: ghost.y + 1,
-                    ..ghost.clone()
-                }) {
-                    ghost.y += 1;
-                }
-                for (x, y, _) in ghost.at() {
-                    if y >= 0 && ghost.y != p.y {
-                        let cx = wx + 1 + x * cell;
-                        c.text(cx, r.y + 1 + y, "┈┈┈", pal.muted);
-                    }
-                }
-                for (x, y, part) in p.at() {
-                    if y >= 0 {
-                        draw_part(c, wx + 1 + x * cell, r.y + 1 + y, part, true);
-                    }
-                }
-            }
+            let inner = Rect::new(wx + 1, r.y + 1, inner_w, rows);
+            self.paint_well(c, inner, well, size);
         }
         let p = Rect::new(r.x + well_w * 2 + gap + 2, r.y, panel_w, well_h);
         if panel_w == 0 {
             return;
         }
         c.titled(p, Line::Light, pal.muted, "Next", pal.bright);
+        let mut next = Field::new(
+            pal,
+            Rect::new(p.x + 2, p.y + 2, 12, 2),
+            pal.theme.background,
+        );
         for &(dx, dy, part) in &self.next {
-            draw_part(c, p.x + 5 + dx * 3, p.y + 2 + dy, part, false);
+            tile(
+                &mut next,
+                &Ink::new(pal),
+                &pal,
+                3 + dx * 3,
+                dy * 2,
+                3,
+                2,
+                part,
+                Look::Placed,
+            );
         }
+        next.paint(c);
         c.text(p.x + 2, p.y + 5, "Rows", pal.muted);
         c.text(p.x + 8, p.y + 5, &self.rows.to_string(), pal.text);
         c.text(p.x + 2, p.y + 6, "Chain", pal.muted);
         c.text(p.x + 8, p.y + 6, &self.chain.to_string(), pal.text);
         c.text(p.x + 2, p.y + 8, "Parts", pal.muted);
-        draw_part(c, p.x + 2, p.y + 9, Part::Across, false);
-        c.text(p.x + 6, p.y + 9, "across", pal.text);
-        draw_part(c, p.x + 2, p.y + 10, Part::Upright, false);
-        c.text(p.x + 6, p.y + 10, "upright", pal.text);
-        draw_part(c, p.x + 2, p.y + 11, Part::Cross, false);
-        c.text(p.x + 6, p.y + 11, "both", pal.text);
-        draw_part(c, p.x + 2, p.y + 12, Part::Feedback, false);
-        c.text(p.x + 6, p.y + 12, "feedback", pal.text);
+        let legend = [
+            (Part::Across, "across"),
+            (Part::Upright, "upright"),
+            (Part::Cross, "both"),
+            (Part::Feedback, "feedback"),
+        ];
+        for (i, (part, name)) in legend.iter().enumerate() {
+            let y = p.y + 9 + i as i32;
+            let mut key = Field::new(pal, Rect::new(p.x + 2, y, 3, 1), pal.theme.background);
+            tile(
+                &mut key,
+                &Ink::new(pal),
+                &pal,
+                0,
+                0,
+                3,
+                2,
+                *part,
+                Look::Placed,
+            );
+            key.paint(c);
+            c.text(p.x + 6, y, name, pal.text);
+        }
     }
 
     fn status(&self) -> Status {
@@ -555,15 +531,246 @@ impl Game for Stackline {
 }
 
 /// A part three cells wide: its wire shape, in a colour of its own.
-fn draw_part(c: &mut Canvas, x: i32, y: i32, part: Part, falling: bool) {
-    let pal = c.pal;
-    let (text, colour) = match part {
-        Part::Across => ("━━━", pal.cyan),
-        Part::Upright => (" ┃ ", pal.magenta),
-        Part::Cross => ("━╋━", pal.yellow),
-        Part::Feedback => ("───", pal.warning),
+/// The size of a part's tile in pixels and of the rail each side of a well.
+#[derive(Clone, Copy, Debug)]
+struct Size {
+    w: i32,
+    h: i32,
+    rail: i32,
+}
+
+impl Size {
+    fn fit(area: Rect) -> Self {
+        let h = ((area.h - 2) * 2 / H as i32).clamp(2, 7);
+        // two wells, the gap between them and the panel share the width
+        let fits = |w: i32| {
+            let rail = (w / 2 + 1).max(3);
+            2 * (W as i32 * w + 2 * rail + 2) + 3 + 2 + 18 <= area.w
+        };
+        let w = (3..=h + 3).rev().find(|&w| fits(w)).unwrap_or(3);
+        Self {
+            w,
+            h,
+            rail: (w / 2 + 1).max(3),
+        }
+    }
+}
+
+impl Stackline {
+    /// One well as pixel art: a circuit board with a solder pad where each part can go, the +
+    /// rail on the left and the - rail on the right, the parts as chips whose copper runs the
+    /// way they carry wire and the falling piece with a faint copy where it will land.
+    fn paint_well(&self, c: &mut Canvas, inner: Rect, well: usize, size: Size) {
+        let pal = c.pal;
+        let ink = Ink::new(pal);
+        let (tw, th, rail) = (size.w, size.h, size.rail);
+        let board = ink.tint(pal.green, 0.1);
+        let pad = ink.tint(pal.green, 0.4);
+        let mut layer = Field::new(pal, inner, board);
+        let lh = layer.h();
+        let tx = |x: i32| rail + x * tw;
+        let ty = |y: i32| y * th;
+        // the rails, a copper strip each side in their own colours
+        let plus = ink.solid(pal.red);
+        let minus = ink.solid(pal.blue);
+        let right = rail + W as i32 * tw;
+        let strip = if rail >= 5 { 2 } else { 1 };
+        layer.px.fill_rect((rail - strip) / 2, 0, strip, lh, plus);
+        layer
+            .px
+            .fill_rect(right + (rail - strip) / 2, 0, strip, lh, minus);
+        let clearing: &[usize] = match &self.clearing {
+            Some((w, rows, _)) if *w == well => rows,
+            _ => &[],
+        };
+        let small = th <= 2;
+        let cross: &[&str] = if small {
+            &["x.x", ".x."]
+        } else {
+            &["x.x", ".x.", "x.x"]
+        };
+        let diamond: &[&str] = if small {
+            &["xxx", ".x."]
+        } else {
+            &[".x.", "xxx", ".x."]
+        };
+        let mark_y = |y: i32| ty(y) + (th - if small { 2 } else { 3 }) / 2;
+        for y in 0..H {
+            let row = &self.wells[well][y];
+            let feedback = row.contains(&Some(Part::Feedback));
+            for (x, cell) in row.iter().enumerate() {
+                let (px, py) = (tx(x as i32), ty(y as i32));
+                if clearing.contains(&y) {
+                    continue;
+                }
+                match *cell {
+                    Some(part) => tile(&mut layer, &ink, &pal, px, py, tw, th, part, Look::Placed),
+                    None if feedback => {
+                        // the one break in a feedback row, marked with a small cross
+                        let mark = ink.solid(pal.warning);
+                        layer.sprite(px + (tw - 3) / 2, mark_y(y as i32), cross, &[('x', mark)]);
+                    }
+                    None => {
+                        // a solder pad, a ring with a hole on the larger tiles
+                        let side = (tw.min(th) / 3).max(1);
+                        let (pw, ph) = (side + i32::from(tw > th + 2), side);
+                        let (ox, oy) = (px + (tw - pw) / 2, py + (th - ph) / 2);
+                        layer.px.fill_rect(ox, oy, pw, ph, pad);
+                        if pw >= 3 && ph >= 3 {
+                            layer.px.set(ox + pw / 2, oy + ph / 2, board);
+                        }
+                    }
+                }
+            }
+            let full = row.iter().all(Option::is_some);
+            let mark = if clearing.contains(&y) {
+                Some((diamond, ink.solid(pal.bright)))
+            } else if full && !Self::joined(row) {
+                // a full row that will not clear is marked on both rails, by shape and colour
+                Some((cross, ink.solid(pal.warning)))
+            } else {
+                None
+            };
+            if let Some((rows, colour)) = mark {
+                for rx in [(rail - 3) / 2, right + (rail - 3) / 2] {
+                    layer.sprite(rx, mark_y(y as i32), rows, &[('x', colour)]);
+                }
+            }
+        }
+        // a clearing row glows and carries one wire from rail to rail
+        for &y in clearing {
+            let py = ty(y as i32);
+            layer
+                .px
+                .fill_rect(rail, py, W as i32 * tw, th, ink.tint(pal.bright, 0.55));
+            let thick = (th / 3).max(1);
+            layer.px.fill_rect(
+                0,
+                py + (th - thick) / 2,
+                right + rail,
+                thick,
+                ink.solid(pal.bright),
+            );
+        }
+        if let Some(p) = &self.piece
+            && p.well == well
+        {
+            let mut ghost = p.clone();
+            while self.fits(&Piece {
+                y: ghost.y + 1,
+                ..ghost.clone()
+            }) {
+                ghost.y += 1;
+            }
+            if ghost.y != p.y {
+                for (x, y, part) in ghost.at() {
+                    if y >= 0 {
+                        tile(
+                            &mut layer,
+                            &ink,
+                            &pal,
+                            tx(x),
+                            ty(y),
+                            tw,
+                            th,
+                            part,
+                            Look::Ghost,
+                        );
+                    }
+                }
+            }
+            for (x, y, part) in p.at() {
+                if y >= 0 {
+                    tile(
+                        &mut layer,
+                        &ink,
+                        &pal,
+                        tx(x),
+                        ty(y),
+                        tw,
+                        th,
+                        part,
+                        Look::Falling,
+                    );
+                }
+            }
+        }
+        layer.paint(c);
+    }
+}
+
+/// How a tile is drawn: settled in the well, falling or the faint copy where it will land.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Look {
+    Placed,
+    Falling,
+    Ghost,
+}
+
+/// One part as a chip `tw` by `th` pixels with copper running the way the part carries wire,
+/// across, up and down or both, so the wire reads by shape as well as colour and a row of
+/// across parts shows one wire from rail to rail. The chip is lit along its top and shaded
+/// along its lower and right edges so neighbouring chips stay apart; the copper keeps a bright
+/// upper edge where it is thick enough.
+#[allow(clippy::too_many_arguments)]
+fn tile(
+    layer: &mut Field,
+    ink: &Ink,
+    pal: &Palette,
+    x: i32,
+    y: i32,
+    tw: i32,
+    th: i32,
+    part: Part,
+    look: Look,
+) {
+    let hue = match part {
+        Part::Across => pal.cyan,
+        Part::Upright => pal.magenta,
+        Part::Cross => pal.yellow,
+        Part::Feedback => pal.warning,
     };
-    c.text(x, y, text, if falling { pal.bright } else { colour });
+    let (body, top, edge, wire, shine) = match look {
+        Look::Placed => (
+            ink.shade(hue, -0.45),
+            ink.shade(hue, -0.3),
+            ink.shade(hue, -0.7),
+            ink.shade(hue, 0.3),
+            ink.lit(ink.shade(hue, 0.3)).0,
+        ),
+        Look::Falling => (
+            ink.solid(hue),
+            ink.lit(hue).0,
+            ink.shade(hue, -0.35),
+            ink.shade(hue, 0.65),
+            ink.lit(ink.shade(hue, 0.65)).0,
+        ),
+        Look::Ghost => {
+            let t = ink.tint(hue, 0.3);
+            (t, t, t, ink.tint(hue, 0.6), ink.tint(hue, 0.6))
+        }
+    };
+    let thick_h = (th / 3).max(1);
+    let thick_w = (tw / 4).max(1);
+    let (wy, wx) = ((th - thick_h) / 2, (tw - thick_w) / 2);
+    for dy in 0..th {
+        for dx in 0..tw {
+            let across = part.across() && (wy..wy + thick_h).contains(&dy);
+            let upright = part.upright() && (wx..wx + thick_w).contains(&dx);
+            let colour = if across || upright {
+                let first =
+                    (across && dy == wy && thick_h >= 2) || (upright && dx == wx && thick_w >= 2);
+                if first { shine } else { wire }
+            } else if dy == th - 1 || (dx == tw - 1 && tw >= 5) {
+                edge
+            } else if dy == 0 && th >= 3 {
+                top
+            } else {
+                body
+            };
+            layer.px.set(x + dx, y + dy, colour);
+        }
+    }
 }
 
 #[cfg(test)]

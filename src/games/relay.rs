@@ -6,6 +6,9 @@
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
 use crate::levels::{self, Level};
+use zacess_scenes::colour::Rgb;
+
+use crate::pixels_ui::{Field, Ink, lump};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
@@ -22,8 +25,8 @@ pub const INFO: Info = Info {
         "Steer a packet to collect every data bit (•) and then reach the exit (⇥), in as few moves as you can.",
         "# Rules",
         "- Each arrow moves the packet one cell. W waits a move in place.",
-        "- x gates are open on even moves and y gates on odd moves. The board shows each gate as it will be for your next move: open ┊ or shut █.",
-        "- Portals with the same letter, such as (A), are linked: step into one to come out of the other.",
+        "- x gates are open on even moves and y gates on odd moves. The board shows each gate as it will be for your next move: a dashed line when open and solid bars when shut.",
+        "- Portals are rings with a letter. Two with the same letter, such as A, are linked: step into one to come out of the other.",
         "- Arrow tiles can only be entered moving the way they point.",
         "- The exit opens once every bit is collected.",
         "# Scoring",
@@ -254,9 +257,59 @@ impl Relay {
     }
 }
 
+/// A data bit: a small cut gem, lit from the upper left, its size following the tiles.
+fn gem(f: &mut Field, ink: &Ink, centre: (f32, f32), s: i32) {
+    let pal = ink.pal;
+    if s == 1 {
+        let (x, y) = (centre.0.floor() as i32, centre.1.floor() as i32 - 1);
+        f.set(x, y, ink.highlight(pal.cyan, 0.4));
+        f.set(x, y + 1, pal.cyan);
+        return;
+    }
+    let r = s;
+    let (cx, cy) = (centre.0.floor() as i32, centre.1.floor() as i32);
+    for dy in -r..r {
+        let half = if dy < 0 { r + dy } else { r - 1 - dy };
+        for dx in -half - 1..=half {
+            let colour = if dy < 0 && dx < 0 {
+                ink.highlight(pal.cyan, 0.45)
+            } else if dy >= 0 && dx >= 0 {
+                ink.shadow(pal.cyan, 0.35)
+            } else {
+                pal.cyan
+            };
+            f.set(cx + dx, cy + dy, colour);
+        }
+    }
+}
+
+/// An oval ring of half-widths `rx` and `ry`, one pixel thick, for a portal.
+fn ring_shape(f: &mut Field, centre: (f32, f32), rx: f32, ry: f32, colour: Rgb) {
+    let (x0, x1) = ((centre.0 - rx - 1.0) as i32, (centre.0 + rx + 1.0) as i32);
+    let (y0, y1) = ((centre.1 - ry - 1.0) as i32, (centre.1 + ry + 1.0) as i32);
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let (dx, dy) = (
+                (x as f32 + 0.5 - centre.0) / rx,
+                (y as f32 + 0.5 - centre.1) / ry,
+            );
+            let d = (dx * dx + dy * dy).sqrt();
+            let step = 1.2 / rx.min(ry);
+            if d <= 1.0 && d > 1.0 - step {
+                f.set(x, y, colour);
+            }
+        }
+    }
+}
+
 impl Game for Relay {
     fn info(&self) -> &'static Info {
         &INFO
+    }
+
+    /// The tiles grow with the window by themselves.
+    fn zoomable(&self) -> bool {
+        false
     }
 
     fn animated(&self) -> bool {
@@ -313,26 +366,80 @@ impl Game for Relay {
         // a wall all round the map is the board's own frame, so it is not drawn twice
         let ring = i32::from(level.walled());
         let (w, h) = (level.width() as i32, level.height() as i32);
-        let board_w = (w - 2 * ring) * 3 + 2;
-        let board_h = h - 2 * ring + 2;
         let panel_w = 24;
+        // each tile grows by a whole step while the board and the panel still fit
+        let (tiles_w, tiles_h) = (w - 2 * ring, h - 2 * ring);
+        let s = (1..=4)
+            .rev()
+            .find(|&s| tiles_w * 3 * s + 4 + panel_w <= area.w && tiles_h * s + 2 <= area.h)
+            .unwrap_or(1);
+        let (tw, th) = (3 * s, 2 * s);
+        let board_w = tiles_w * tw + 2;
+        let board_h = tiles_h * s + 2;
         let r = area.centre(board_w + 2 + panel_w, board_h.max(14));
         let board = Rect::new(r.x, r.y, board_w, board_h);
         c.titled(board, Line::Heavy, pal.function, &level.name, pal.bright);
         let next = self.state.moves + 1;
+        let ink = Ink::new(pal);
+        let inner = Rect::new(board.x + 1, board.y + 1, board_w - 2, board_h - 2);
+        let mut f = Field::new(pal, inner, ink.back());
+        // floor tiles in a quiet checker, so the grid can be counted without lines
+        let floor = [
+            ink.surface(pal.function, 0.06),
+            ink.surface(pal.function, 0.14),
+        ];
+        let wall_top = ink.soften(pal.muted, 0.25);
+        let wall_low = ink.soften(pal.muted, 0.6);
+        let mortar = ink.soften(pal.muted, 0.75);
+        let bar = (s / 2).max(1);
         for y in ring as usize..(h - ring) as usize {
             for x in ring as usize..(w - ring) as usize {
-                let cx = board.x + 1 + (x as i32 - ring) * 3;
-                let cy = board.y + 1 + y as i32 - ring;
+                let px = (x as i32 - ring) * tw;
+                let py = (y as i32 - ring) * th;
                 let ch = level.map[y][x];
+                f.fill_rect(px, py, tw, th, floor[(x + y) % 2]);
+                // the sides of a tile in one colour, leaving its middle for a letter
+                let sides = |f: &mut Field, colour| {
+                    f.fill_rect(px, py, bar, th, colour);
+                    f.fill_rect(px + tw - bar, py, bar, th, colour);
+                };
+                let centre = (px as f32 + tw as f32 / 2.0, py as f32 + th as f32 / 2.0);
                 match ch {
-                    '#' => c.text(cx, cy, "▓▓▓", pal.muted),
+                    '#' => {
+                        // a block lit from above; larger tiles show their bricks
+                        f.fill_rect(px, py, tw, th / 2, wall_top);
+                        f.fill_rect(px, py + th / 2, tw, th - th / 2, wall_low);
+                        if s >= 2 {
+                            f.fill_rect(px, py + th / 2 - 1, tw, 1, mortar);
+                            let joint = if y % 2 == 0 { tw / 2 } else { tw / 4 };
+                            f.fill_rect(px + joint, py, 1, th / 2 - 1, mortar);
+                            f.fill_rect(px + (joint + tw / 2) % tw, py + th / 2, 1, th / 2, mortar);
+                        }
+                    }
                     'E' => {
                         let open = self.bits_left() == 0;
-                        let colour = if open { pal.green } else { pal.muted };
-                        c.put(cx, cy, if open { ' ' } else { '[' }, colour);
-                        c.put(cx + 1, cy, g('⇥', 'E'), colour);
-                        c.put(cx + 2, cy, if open { ' ' } else { ']' }, colour);
+                        let colour = if open {
+                            pal.green
+                        } else {
+                            ink.soften(pal.muted, 0.3)
+                        };
+                        sides(&mut f, colour);
+                        if s >= 2 {
+                            f.fill_rect(px, py, tw, bar, colour);
+                        }
+                    }
+                    'A'..='D' => {
+                        if s >= 2 {
+                            ring_shape(
+                                &mut f,
+                                centre,
+                                tw as f32 / 2.0 - 0.5,
+                                th as f32 / 2.0 - 0.5,
+                                pal.magenta,
+                            );
+                        } else {
+                            sides(&mut f, pal.magenta);
+                        }
                     }
                     'o' => {
                         let taken = self
@@ -340,21 +447,65 @@ impl Game for Relay {
                             .iter()
                             .position(|b| *b == (x, y))
                             .is_some_and(|i| self.state.got[i]);
-                        if taken {
-                            c.put(cx + 1, cy, '·', pal.muted);
-                        } else {
-                            c.put(cx + 1, cy, g('•', 'o'), pal.cyan);
+                        if !taken {
+                            gem(&mut f, &ink, centre, s);
                         }
                     }
                     'x' | 'y' => {
+                        // the letter keeps the tile's top left cell; the gate is drawn beside it
                         if gate_open(ch, next) {
-                            c.put(cx, cy, ch, pal.muted);
-                            c.put(cx + 1, cy, '┊', pal.green);
+                            let dash = ink.soften(pal.green, 0.2);
+                            for k in (0..th).step_by(2) {
+                                f.fill_rect(px + tw / 2, py + k, bar, 1, dash);
+                            }
                         } else {
-                            c.put(cx, cy, ch, pal.warning);
-                            c.put(cx + 1, cy, '█', pal.warning);
-                            c.put(cx + 2, cy, '█', pal.warning);
+                            let lit = ink.highlight(pal.warning, 0.25);
+                            for k in 0..3 {
+                                let bx = px + s + k * (tw - s - bar) / 2;
+                                f.fill_rect(bx, py, bar, th, pal.warning);
+                                f.fill_rect(bx, py, bar, 1, lit);
+                            }
+                            f.fill_rect(px + s, py + th / 2, tw - s, 1, pal.warning);
                         }
+                    }
+                    _ => {}
+                }
+                if (x, y) == self.state.pos {
+                    if s >= 2 {
+                        let tones = [
+                            ink.highlight(pal.function, 0.4),
+                            pal.function,
+                            ink.shadow(pal.function, 0.4),
+                        ];
+                        let r = (th as f32 * 0.42).max(1.5);
+                        lump(&mut f, centre, r, tones, 0.0, 0.0);
+                    } else {
+                        sides(&mut f, pal.function);
+                    }
+                }
+            }
+        }
+        f.paint(c);
+        // letters, arrows and the packet's mark are text on the floor
+        for y in ring as usize..(h - ring) as usize {
+            for x in ring as usize..(w - ring) as usize {
+                let tx = board.x + 1 + (x as i32 - ring) * tw;
+                let ty = board.y + 1 + (y as i32 - ring) * s;
+                let (cx, cy) = (tx + tw / 2, ty + s / 2);
+                let ch = level.map[y][x];
+                match ch {
+                    'E' => {
+                        let open = self.bits_left() == 0;
+                        let colour = if open { pal.green } else { pal.muted };
+                        c.put(cx, cy, g('⇥', 'E'), colour);
+                    }
+                    'x' | 'y' => {
+                        let colour = if gate_open(ch, next) {
+                            pal.muted
+                        } else {
+                            pal.warning
+                        };
+                        c.put(tx, ty, ch, colour);
                     }
                     '>' | '<' | '^' | 'v' => {
                         let arrow = match ch {
@@ -363,19 +514,13 @@ impl Game for Relay {
                             '^' => g('↑', '^'),
                             _ => g('↓', 'v'),
                         };
-                        c.put(cx + 1, cy, arrow, pal.blue);
+                        c.put(cx, cy, arrow, pal.blue);
                     }
-                    'A'..='D' => {
-                        c.put(cx, cy, '(', pal.magenta);
-                        c.put(cx + 1, cy, ch, pal.magenta);
-                        c.put(cx + 2, cy, ')', pal.magenta);
-                    }
-                    _ => c.put(cx + 1, cy, '·', pal.muted),
+                    'A'..='D' => c.put(cx, cy, ch, pal.magenta),
+                    _ => {}
                 }
-                if (x, y) == self.state.pos {
-                    c.put(cx, cy, '‹', pal.bright);
-                    c.put(cx + 1, cy, g('◉', '@'), pal.function);
-                    c.put(cx + 2, cy, '›', pal.bright);
+                if (x, y) == self.state.pos && s == 1 {
+                    c.put(cx, cy, g('◉', '@'), pal.function);
                 }
             }
         }

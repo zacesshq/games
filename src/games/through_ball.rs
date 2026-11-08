@@ -9,9 +9,12 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink, text_on};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
+use zacess_scenes::colour::Rgb;
+use zacess_scenes::pixels;
 
 pub const INFO: Info = Info {
     id: "through-ball",
@@ -24,9 +27,9 @@ pub const INFO: Info = Info {
         "# Goal",
         "Score as many goals as you can from five attacks.",
         "# Rules",
-        "- Your three attackers are (1), (2) and (3); the one with the ball shows ●. Three defenders (✕) and a keeper ([K]) stand in the way.",
+        "- Your three attackers wear 1, 2 and 3 on their shirts; the one with the ball has it at their feet. Three defenders in plain striped shirts and a keeper (K) stand in the way.",
         "- Each turn you do one thing: run one cell with the ball, pass or shoot.",
-        "- A pass goes to the teammate marked <2> (Tab picks another). It only goes if no defender stands in the straight lane between you; the lane is dotted when open.",
+        "- A pass goes to the teammate standing in the ring (Tab picks another). It only goes if no defender stands in the straight lane between you; the lane shows bold dots when open and faint specks when blocked.",
         "- Shoot with 1, 2 or 3 at the top, middle or low row of goal, from column 9 on. A defender in the way blocks it. The keeper covers its own row. From outside the box it covers the rows either side too.",
         "- After your turn your teammates run forward, the nearest defender presses the ball and the others step into the passing lanes. A defender reaching the ball wins it.",
         "- Each attack has a shot clock of 12 turns.",
@@ -357,6 +360,11 @@ impl Game for ThroughBall {
         &INFO
     }
 
+    fn zoomable(&self) -> bool {
+        // the pitch grows its own cells with the window, which keeps the players sharp
+        false
+    }
+
     fn animated(&self) -> bool {
         self.ended.is_some()
     }
@@ -394,8 +402,10 @@ impl Game for ThroughBall {
 
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
-        let board_w = W * 3 + 2;
-        let board_h = H + 2;
+        let (cw, ch, depth) = pitch_scale(area);
+        let rows = (H * ch + 1) / 2;
+        let board_w = W * cw + depth + 2;
+        let board_h = rows + 2;
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
         let panel_w = if area.w >= board_w + 3 + 22 { 22 } else { 0 };
@@ -408,60 +418,13 @@ impl Game for ThroughBall {
             &format!("Attack {} of {ATTACKS}", self.attack),
             pal.bright,
         );
-        let cx = |x: i32| pitch.x + 1 + x * 3;
-        let cy = |y: i32| pitch.y + 1 + y;
-        // the grass: a dot in every cell, with the box drawn as a dotted line
-        for y in 0..H {
-            for x in 0..W {
-                c.put(cx(x) + 1, cy(y), '·', pal.muted);
-            }
-            c.put(cx(BOX) - 1, cy(y), '┊', pal.muted);
-        }
-        for x in BOX..W {
-            c.text(cx(x), cy(0), "┄┄┄", pal.muted);
-            c.text(cx(x), cy(H - 1), "┄┄┄", pal.muted);
-        }
-        // the goal: posts on the frame and the net just beyond it
-        let gx = pitch.x + pitch.w - 1;
-        c.put(gx, cy(GOAL[0]) - 1, '┳', pal.bright);
-        c.put(gx, cy(GOAL[2]) + 1, '┻', pal.bright);
-        for row in GOAL {
-            c.put(gx, cy(row), ' ', pal.bright);
-            c.put(gx + 1, cy(row), '▒', pal.muted);
-        }
-        // the lane of the chosen pass, open or blocked
         let open = self.lane_open(self.target);
-        if self.ended.is_none() {
-            for (x, y) in between(self.ball(), self.attackers[self.target]) {
-                if !self.occupied((x, y)) {
-                    let mark = if open { '•' } else { '·' };
-                    c.put(
-                        cx(x) + 1,
-                        cy(y),
-                        mark,
-                        if open { pal.keyword } else { pal.muted },
-                    );
-                }
-            }
-        }
-        for (i, &(x, y)) in self.defenders.iter().enumerate() {
-            let _ = i;
-            c.text(cx(x), cy(y), &format!(" {} ", g('✕', 'x')), pal.red);
-        }
-        let (kx, ky) = self.keeper;
-        c.text(cx(kx), cy(ky), "[K]", pal.yellow);
-        for (i, &(x, y)) in self.attackers.iter().enumerate() {
-            let n = char::from(b'1' + i as u8);
-            if i == self.carrier {
-                c.put(cx(x), cy(y), '(', pal.bright);
-                c.put(cx(x) + 1, cy(y), n, pal.bright);
-                c.put(cx(x) + 2, cy(y), g('●', '*'), pal.bright);
-            } else if i == self.target && self.ended.is_none() {
-                c.text(cx(x), cy(y), &format!("<{n}>"), pal.keyword);
-            } else {
-                c.text(cx(x), cy(y), &format!("({n})"), pal.green);
-            }
-        }
+        self.paint_pitch(
+            c,
+            Rect::new(pitch.x + 1, pitch.y + 1, W * cw + depth, rows),
+            cw,
+            ch,
+        );
 
         let p = Rect::new(pitch.x + board_w + 3, pitch.y, panel_w, board_h.max(15));
         if panel_w == 0 {
@@ -540,7 +503,7 @@ impl Game for ThroughBall {
         c.text(
             p.x + 2,
             p.y + 13,
-            &format!("{} ball  {} defender", g('●', '*'), g('✕', 'x')),
+            &format!("{} ball  K keeper", g('●', '*')),
             pal.muted,
         );
     }
@@ -565,6 +528,237 @@ impl Game for ThroughBall {
 
     fn demo(&self) -> Vec<(Key, f32)> {
         vec![(Key::Right, 0.0), (Key::Right, 0.0), (Key::Tab, 0.0)]
+    }
+}
+
+/// The size of a cell of the pitch in pixels, `cw` wide by `ch` tall, with the depth of the goal
+/// past the right edge: as large as the window allows beside the side panel, kept near square
+/// so the players keep their shape.
+fn pitch_scale(area: Rect) -> (i32, i32, i32) {
+    let room_w = area.w - 2 - 3 - 22;
+    let room_h = (area.h - 2).max(1);
+    let ch = (room_h * 2 / H).clamp(2, 12);
+    // the goal takes about half a cell more
+    let cw = ((room_w - 1) * 2 / (2 * W + 1)).clamp(3, ch + 2);
+    let ch = ch.min(cw + 1);
+    let depth = (cw / 2 + 1).max(2);
+    (cw, ch, depth)
+}
+
+/// The sizes a player is drawn at, from the smallest cell up.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Build {
+    Token,
+    Small,
+    Normal,
+    Big,
+}
+
+/// A player from above and a little in front: hair, face, a shirt wide enough for a number in
+/// its middle, shorts and legs. `s` is the shirt and `S` its middle column, which the number is
+/// written on; `t` is a darker stripe for the defenders' kit, `g` the keeper's gloves held up.
+fn figure(build: Build, keeper: bool) -> (&'static [&'static str], i32) {
+    // the second value is the row of the figure the number sits on, always an even one
+    match (build, keeper) {
+        (Build::Token, _) => (&["lSd", "sSd"], 0),
+        (Build::Small, false) => (&[".h.", "sSs", "sSs", "l.l"], 1),
+        (Build::Small, true) => (&["ghg", "sSs", "sSs", "l.l"], 1),
+        (Build::Normal, false) => (&[".hhh.", ".fff.", "tsSst", "tsSst", ".kkk.", ".l.l."], 2),
+        (Build::Normal, true) => (&["ghhhg", "gfffg", "ssSss", "ssSss", ".kkk.", ".l.l."], 2),
+        (Build::Big, false) => (
+            &[
+                "..hhh..", ".hfffh.", "..fff..", "tssSsst", "tssSsst", ".ssSss.", ".kkkkk.",
+                ".ll.ll.", ".bb.bb.",
+            ],
+            4,
+        ),
+        (Build::Big, true) => (
+            &[
+                "g.hhh.g", "gyfffyg", "s.fff.s", "sssSsss", "sssSsss", ".ssSss.", ".kkkkk.",
+                ".ll.ll.", ".bb.bb.",
+            ],
+            4,
+        ),
+    }
+}
+
+impl ThroughBall {
+    /// The pitch from above as pixel art: striped grass, the box and its arc in chalk, the goal
+    /// with its net, then the players. Attackers wear their number on the shirt, defenders wear
+    /// plain striped shirts in the other kit and the keeper holds up gloves with a K on the
+    /// shirt, so each reads by shape as well as colour. The ball sits at the carrier's feet.
+    fn paint_pitch(&self, c: &mut Canvas, inner: Rect, cw: i32, ch: i32) {
+        let pal = c.pal;
+        let ink = Ink::new(pal);
+        let grass = [ink.tint(pal.green, 0.18), ink.tint(pal.green, 0.27)];
+        let chalk = ink.tint(pal.text, 0.6);
+        let mut layer = Field::new(pal, inner, grass[0]);
+        let (lw, lh) = (layer.w(), layer.h());
+        let goal_x = W * cw;
+        for x in 0..W {
+            layer
+                .px
+                .fill_rect(x * cw, 0, cw, lh, grass[(x % 2) as usize]);
+        }
+        // the run-off behind the goal line, then the goal: posts, crossbar and net
+        let runoff = ink.tint(pal.green, 0.1);
+        layer.px.fill_rect(goal_x, 0, lw - goal_x, lh, runoff);
+        let (top, bottom) = (GOAL[0] * ch, (GOAL[2] + 1) * ch);
+        let net_back = ink.tint(pal.muted, 0.2);
+        let net = ink.tint(pal.text, 0.42);
+        layer
+            .px
+            .fill_rect(goal_x, top, lw - goal_x, bottom - top, net_back);
+        for y in top..bottom {
+            for x in goal_x..lw {
+                if (x + y) % 2 == 0 {
+                    layer.px.set(x, y, net);
+                }
+            }
+        }
+        let post = ink.solid(pal.bright);
+        let bar = if ch >= 6 { 2 } else { 1 };
+        layer
+            .px
+            .fill_rect(goal_x, top - bar, lw - goal_x, bar, post);
+        layer.px.fill_rect(goal_x, bottom, lw - goal_x, bar, post);
+        layer.px.fill_rect(lw - 1, top, 1, bottom - top, post);
+        // the goal line and the box in chalk, with the arc at its edge
+        layer.px.fill_rect(goal_x - 1, 0, 1, top - bar, chalk);
+        layer
+            .px
+            .fill_rect(goal_x - 1, bottom + bar, 1, lh - bottom - bar, chalk);
+        let box_x = BOX * cw - 1;
+        layer.px.fill_rect(box_x, 0, 1, lh, chalk);
+        layer.px.fill_rect(box_x, 0, goal_x - box_x, 1, chalk);
+        layer
+            .px
+            .fill_rect(box_x, H * ch - 1, goal_x - box_x, 1, chalk);
+        let (ax, ay) = (box_x as f32, (H * ch) as f32 / 2.0);
+        let radius = (ch as f32 * 1.6).max(3.0);
+        for i in 0..96 {
+            let a = std::f32::consts::PI * (0.5 + i as f32 / 95.0);
+            let (x, y) = (
+                ax + a.cos() * radius * cw as f32 / ch as f32 * 0.7,
+                ay + a.sin() * radius,
+            );
+            layer.px.set(x.round() as i32, y.round() as i32, chalk);
+        }
+        let at = |cell: Cell| (cell.0 * cw, cell.1 * ch);
+        let open = self.lane_open(self.target);
+        if self.ended.is_none() {
+            // the lane of the chosen pass: bold dots when it is open, faint specks when it is not
+            for cell in between(self.ball(), self.attackers[self.target]) {
+                if self.occupied(cell) {
+                    continue;
+                }
+                let (x, y) = at(cell);
+                let (mx, my) = (x + cw / 2 - 1, y + ch / 2 - 1);
+                if open {
+                    layer.px.fill_rect(mx, my, 2, 2, ink.solid(pal.keyword));
+                } else {
+                    layer.px.set(mx, my + 1, ink.tint(pal.muted, 0.7));
+                }
+            }
+            // the chosen receiver stands in a ring
+            let (x, y) = at(self.attackers[self.target]);
+            let ring = ink.solid(pal.keyword);
+            layer.px.fill_rect(x - 1, y - 1, cw + 1, 1, ring);
+            layer.px.fill_rect(x - 1, y + ch, cw + 1, 1, ring);
+            layer.px.fill_rect(x - 1, y - 1, 1, ch + 2, ring);
+            layer.px.fill_rect(x + cw - 1, y - 1, 1, ch + 2, ring);
+        }
+        let build = if cw >= 8 && ch >= 8 {
+            Build::Big
+        } else if cw >= 5 && ch >= 5 {
+            Build::Normal
+        } else if cw >= 3 && ch >= 4 {
+            Build::Small
+        } else {
+            Build::Token
+        };
+        let skin = ink.solid(pixels::mix(pal.yellow, pal.red, 0.35));
+        let hair = ink.shade(pal.muted, -0.6);
+        let mut labels: Vec<(i32, i32, char)> = Vec::new();
+        let mut draw =
+            |layer: &mut Field, cell: Cell, kit: Rgb, keeper: bool, label: Option<char>| {
+                let (rows, number_row) = figure(build, keeper && build != Build::Token);
+                let fw = rows[0].len() as i32;
+                let (x, y) = at(cell);
+                let fx = x + (cw - fw) / 2;
+                // the number's row lands on a whole character row, so it reads as text
+                let text_row = (y + ch / 2) / 2;
+                let fy = 2 * text_row - number_row;
+                let (lit, dark) = ink.lit(kit);
+                let shorts = ink.shade(kit, -0.6);
+                let stripe = if label.is_some() { kit } else { dark };
+                layer.sprite(
+                    fx,
+                    fy,
+                    rows,
+                    &[
+                        ('h', hair),
+                        ('f', skin),
+                        ('y', skin),
+                        ('s', kit),
+                        ('S', stripe),
+                        ('t', stripe),
+                        ('k', shorts),
+                        ('l', if build == Build::Token { lit } else { skin }),
+                        ('d', dark),
+                        ('b', hair),
+                        ('g', ink.solid(pal.bright)),
+                    ],
+                );
+                if let Some(label) = label {
+                    let col = rows[number_row as usize].find('S').unwrap_or(0) as i32;
+                    labels.push((fx + col, text_row, label));
+                }
+                (fx, fy, fw, rows.len() as i32)
+            };
+        for &cell in &self.defenders {
+            draw(&mut layer, cell, pal.red, false, None);
+        }
+        draw(&mut layer, self.keeper, pal.yellow, true, Some('K'));
+        let mut feet = (0, 0, 0, 0);
+        for (i, &cell) in self.attackers.iter().enumerate() {
+            let placed = draw(
+                &mut layer,
+                cell,
+                pal.green,
+                false,
+                Some(char::from(b'1' + i as u8)),
+            );
+            if i == self.carrier {
+                feet = placed;
+            }
+        }
+        // the ball at the carrier's feet, a small white disc beside the boots
+        let ball = ink.solid(pal.bright);
+        let (fx, fy, fw, fh) = feet;
+        if build == Build::Token {
+            let (bx, by) = at(self.ball());
+            layer.px.fill_rect(bx + 2, by, 1, 2, ball);
+        } else {
+            let size = if build == Build::Big { 3 } else { 2 };
+            layer
+                .px
+                .fill_rect(fx + fw, fy + fh - size, size, size, ball);
+            if size == 3 {
+                layer.px.set(fx + fw, fy + fh - size, ink.lit(pal.bright).1);
+            }
+        }
+        layer.paint(c);
+        // the number on each shirt, written in the background colour on the shirt itself
+        for (x, row, label) in labels {
+            text_on(
+                c,
+                inner.x + x,
+                inner.y + row,
+                &label.to_string(),
+                pal.theme.background,
+            );
+        }
     }
 }
 

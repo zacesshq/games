@@ -1,12 +1,12 @@
 //! Colours, glyphs and the frame every game is drawn inside: a title bar in the top border, a
 //! status bar, the play area, a key hint line and the overlays for pause, help and the end of a
 //! game. Every colour comes from a palette role that is checked against the theme's floor, so no
-//! game can draw below 4.5:1 (7:1 on the High Contrast and Deep Contrast themes).
+//! game can draw below 4.5:1 (7:1 on every theme but the Warm pair).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use zacess_scenes::colour::Rgb;
-use zacess_scenes::frame::Frame;
+use zacess_scenes::frame::{Cell, Frame};
 use zacess_scenes::lua::Role;
 use zacess_scenes::theme::ThemeData;
 
@@ -257,7 +257,15 @@ impl<'a> Canvas<'a> {
 
     pub fn put(&mut self, x: i32, y: i32, ch: char, colour: Rgb) {
         if self.inside(x, y) {
-            self.frame.put(x, y, ch, Some(colour));
+            // a character set on pixel imagery keeps the lower pixel as its background, so text
+            // over a play field sits on the field instead of punching a hole in it
+            let bg = self
+                .frame
+                .get(x, y)
+                .and_then(|cell| cell.pixel_pair())
+                .map(|(_, bottom)| bottom);
+            let colour = Some(colour);
+            self.frame.put_cell(x, y, Cell { ch, colour, bg });
         } else if ch != ' ' {
             self.outside += 1;
         }
@@ -485,6 +493,20 @@ pub fn zoom(from: &Frame, into: &mut Frame, at: (i32, i32)) {
         let w = from.width() as i32;
         while x < w {
             let Some(cell) = from.get(x, y) else { break };
+            // a pixel cell doubles into two rows: its top pixel fills the upper one and its
+            // bottom pixel the lower, so imagery keeps its shape at twice the size
+            if let Some((top, bottom)) = cell.pixel_pair() {
+                for dx in 0..2 {
+                    into.put_cell(at.0 + 2 * x + dx, at.1 + 2 * y, Cell::pixels(top, top));
+                    into.put_cell(
+                        at.0 + 2 * x + dx,
+                        at.1 + 2 * y + 1,
+                        Cell::pixels(bottom, bottom),
+                    );
+                }
+                x += 1;
+                continue;
+            }
             let is_text = |c: char| c.is_alphanumeric() || ".,:;!?'\"%()/+-=<>[]_#@&°".contains(c);
             if is_text(cell.ch) {
                 // a run of text, spaces between words included, is written once at the start
@@ -504,18 +526,50 @@ pub fn zoom(from: &Frame, into: &mut Frame, at: (i32, i32)) {
                 // box edge around a title, carries on either side of it
                 let n = run.len() as i32;
                 let off = n / 2;
+                // pixel imagery before a run is not a line to carry on
                 let before = if x > 0 { from.get(x - 1, y) } else { None };
+                let before = before.filter(|b| !b.is_pixel());
                 let fill = before.map_or(' ', |b| stretch_right(b.ch));
                 let fill_colour = before.and_then(|b| b.colour);
                 for i in 0..2 * n {
+                    // the background under each doubled cell is the one under its source cell,
+                    // so text on pixel imagery stays on that imagery
+                    let bg = run[(i / 2) as usize].bg;
                     if i < off || i >= off + n {
-                        into.put(at.0 + 2 * x + i, at.1 + 2 * y, fill, fill_colour);
+                        let cell = Cell {
+                            ch: fill,
+                            colour: fill_colour,
+                            bg,
+                        };
+                        into.put_cell(at.0 + 2 * x + i, at.1 + 2 * y, cell);
+                    }
+                    if let Some(bg) = bg {
+                        into.put_cell(at.0 + 2 * x + i, at.1 + 2 * y + 1, Cell::pixels(bg, bg));
                     }
                 }
                 for (i, c) in run.iter().enumerate() {
-                    into.put(at.0 + 2 * x + off + i as i32, at.1 + 2 * y, c.ch, c.colour);
+                    into.put_cell(at.0 + 2 * x + off + i as i32, at.1 + 2 * y, *c);
                 }
                 x = end;
+                continue;
+            }
+            if let Some(bg) = cell.bg {
+                // a glyph set on imagery: the glyph is stretched as usual over the background
+                let parts = [
+                    (0, 0, cell.ch),
+                    (1, 0, stretch_right(cell.ch)),
+                    (0, 1, stretch_down(cell.ch)),
+                ];
+                into.put_cell(at.0 + 2 * x + 1, at.1 + 2 * y + 1, Cell::pixels(bg, bg));
+                for (dx, dy, ch) in parts {
+                    let part = Cell {
+                        ch,
+                        colour: cell.colour,
+                        bg: Some(bg),
+                    };
+                    into.put_cell(at.0 + 2 * x + dx, at.1 + 2 * y + dy, part);
+                }
+                x += 1;
                 continue;
             }
             let right = stretch_right(cell.ch);
@@ -686,10 +740,63 @@ mod tests {
     }
 
     #[test]
-    fn the_strong_themes_use_the_seven_to_one_floor() {
+    fn every_theme_but_the_warm_pair_uses_the_seven_to_one_floor() {
+        // the Warm pair trades contrast for comfort at the WCAG AA 4.5 to 1; every other theme
+        // holds text to 7 to 1
         for t in theme::all() {
-            let strong = t.name.contains("High Contrast") || t.name.contains("Deep Contrast");
-            assert_eq!(t.floor() >= 7.0, strong, "{}", t.name);
+            if t.name.contains("Warm") {
+                assert_eq!(t.floor(), 4.5, "{}", t.name);
+            } else {
+                assert!(t.floor() >= 7.0, "{} has a floor of {}", t.name, t.floor());
+            }
+        }
+    }
+
+    #[test]
+    fn no_theme_drops_below_the_text_floor() {
+        // a theme may set its own floor, such as 4.5 to 1 on the Warm pair, but never below the
+        // WCAG AA level for text
+        for t in theme::all() {
+            assert!(t.floor() >= 4.5, "{} has a floor of {}", t.name, t.floor());
+        }
+    }
+
+    #[test]
+    fn every_theme_keeps_pieces_text_and_status_apart() {
+        for t in theme::all() {
+            let pal = Palette::new(t);
+            // status labels are muted and their values are text, so the two must differ
+            assert_ne!(pal.text, pal.muted, "{}: text and muted match", t.name);
+            // the six piece hues the games colour code with, each apart from the others and from
+            // the muted frame they sit on
+            let hues = [
+                ("red", pal.red),
+                ("green", pal.green),
+                ("yellow", pal.yellow),
+                ("blue", pal.blue),
+                ("magenta", pal.magenta),
+                ("cyan", pal.cyan),
+            ];
+            for (i, (a, ca)) in hues.iter().enumerate() {
+                assert_ne!(*ca, pal.muted, "{}: {a} matches muted", t.name);
+                for (b, cb) in &hues[i + 1..] {
+                    assert_ne!(ca, cb, "{}: {a} and {b} match", t.name);
+                }
+            }
+            // a fault, a warning and a success are told apart in every status line
+            assert_ne!(pal.error, pal.warning, "{}: error and warning", t.name);
+            assert_ne!(pal.error, pal.green, "{}: error and green", t.name);
+            assert_ne!(pal.warning, pal.green, "{}: warning and green", t.name);
+            for info in crate::games::ALL {
+                let identity = pal.identity(info.hue);
+                assert_ne!(identity, pal.muted, "{} in {}", info.id, t.name);
+                assert!(
+                    t.contrast_of(identity) >= t.floor(),
+                    "{} in {}",
+                    info.id,
+                    t.name
+                );
+            }
         }
     }
 

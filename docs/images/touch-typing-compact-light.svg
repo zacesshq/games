@@ -2,10 +2,12 @@
 <title>Touch Typing in Zacess Light, part way through a game</title>
 <rect x="0.5" y="0.5" width="531" height="397" rx="10" fill="#ffffff" stroke="#424242"/>
 <line x1="0.5" y1="30" x2="531.5" y2="30" stroke="#424242"/>
-<circle cx="18" cy="15" r="5" fill="#ca010e"/>
-<circle cx="34" cy="15" r="5" fill="#885a00"/>
-<circle cx="50" cy="15" r="5" fill="#01751c"/>
+<circle cx="18" cy="15" r="5" fill="#b40000"/>
+<circle cx="34" cy="15" r="5" fill="#7c4f00"/>
+<circle cx="50" cy="15" r="5" fill="#006606"/>
 <text x="266" y="19.5" fill="#111111" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13" text-anchor="middle">zacess-games touch-typing</text>
+<g shape-rendering="crispEdges">
+</g>
 <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
 <text x="14" y="57" fill="#424242" textLength="16.8" lengthAdjust="spacingAndGlyphs">╭─</text>
 <text x="39.2" y="57" fill="#0049a3" textLength="117.6" lengthAdjust="spacingAndGlyphs">◫ Touch Typing</text>
@@ -35,16 +37,16 @@
 <text x="509.6" y="142" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="159" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="22.4" y="159" fill="#0049a3" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
-<text x="39.2" y="159" fill="#01751c" textLength="42" lengthAdjust="spacingAndGlyphs">jfjj·</text>
-<text x="81.2" y="159" fill="#583600" textLength="8.4" lengthAdjust="spacingAndGlyphs">j</text>
-<text x="89.6" y="159" fill="#01751c" textLength="50.4" lengthAdjust="spacingAndGlyphs">jff·ff</text>
+<text x="39.2" y="159" fill="#006606" textLength="42" lengthAdjust="spacingAndGlyphs">jfjj·</text>
+<text x="81.2" y="159" fill="#843800" textLength="8.4" lengthAdjust="spacingAndGlyphs">j</text>
+<text x="89.6" y="159" fill="#006606" textLength="50.4" lengthAdjust="spacingAndGlyphs">jff·ff</text>
 <text x="140" y="159" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">·</text>
 <text x="148.4" y="159" fill="#424242" textLength="193.2" lengthAdjust="spacingAndGlyphs">fjj ffff fj jjj ffjf fj</text>
 <text x="501.2" y="159" fill="#0049a3" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
 <text x="509.6" y="159" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="22.4" y="176" fill="#0049a3" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
-<text x="81.2" y="176" fill="#583600" textLength="8.4" lengthAdjust="spacingAndGlyphs">^</text>
+<text x="81.2" y="176" fill="#843800" textLength="8.4" lengthAdjust="spacingAndGlyphs">^</text>
 <text x="140" y="176" fill="#111111" textLength="8.4" lengthAdjust="spacingAndGlyphs">‾</text>
 <text x="501.2" y="176" fill="#0049a3" textLength="8.4" lengthAdjust="spacingAndGlyphs">┃</text>
 <text x="509.6" y="176" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
@@ -57,7 +59,7 @@
 <text x="22.4" y="210" fill="#0049a3" textLength="487.2" lengthAdjust="spacingAndGlyphs">┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛</text>
 <text x="509.6" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<text x="39.2" y="227" fill="#026f6f" textLength="218.4" lengthAdjust="spacingAndGlyphs">Next: space · either thumb</text>
+<text x="39.2" y="227" fill="#006364" textLength="218.4" lengthAdjust="spacingAndGlyphs">Next: space · either thumb</text>
 <text x="509.6" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="509.6" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>

@@ -1,15 +1,15 @@
-# winget installer manifest for Zacess Games 0.4.0. SHA256_X86_64_PC_WINDOWS_MSVC is the sum from
-# the zip's .sha256 file attached to the v0.4.0 release; packaging/fill-checksums.sh fills it in.
+# winget installer manifest for Zacess Games 1.0.0. SHA256_X86_64_PC_WINDOWS_MSVC is the sum from
+# the zip's .sha256 file attached to the v1.0.0 release; packaging/fill-checksums.sh fills it in.
 PackageIdentifier: Zacess.Games
-PackageVersion: 0.4.0
+PackageVersion: 1.0.0
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
-  - RelativeFilePath: zacess-games-v0.4.0-x86_64-pc-windows-msvc\zacess-games.exe
+  - RelativeFilePath: zacess-games-v1.0.0-x86_64-pc-windows-msvc\zacess-games.exe
     PortableCommandAlias: zacess-games
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/zacesshq/games/releases/download/v0.4.0/zacess-games-v0.4.0-x86_64-pc-windows-msvc.zip
+    InstallerUrl: https://github.com/zacesshq/games/releases/download/v1.0.0/zacess-games-v1.0.0-x86_64-pc-windows-msvc.zip
     InstallerSha256: SHA256_X86_64_PC_WINDOWS_MSVC
 ManifestType: installer
 ManifestVersion: 1.6.0

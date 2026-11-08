@@ -5,7 +5,7 @@
   </picture>
 </h1>
 
-Fourteen original games for the terminal, drawn in the eight [Zacess](https://zacess.com) high
+Fourteen original games for the terminal, drawn in the ten [Zacess](https://zacess.com) high
 contrast themes.
 
 [![CI](https://github.com/zacesshq/games/actions/workflows/ci.yml/badge.svg)](https://github.com/zacesshq/games/actions/workflows/ci.yml)
@@ -22,8 +22,13 @@ contrast floors, flash limit and reduced motion.
 
 ## What every game has
 
-- **Zacess themes with contrast floors.** Every colour keeps at least 4.5 to 1 contrast on the
-  theme's background. The High Contrast and Deep Contrast themes keep at least 7 to 1.
+- **Zacess themes with contrast floors.** All text keeps at least 7 to 1 contrast on the theme's
+  background in eight of the ten themes and at least 4.5 to 1 in Warm Dark and Warm Light.
+- **Pixel art boards.** Every board, from Stackline's circuit wells to Drift's moonlit hills, is
+  drawn as half-block pixel art made from the theme's own colours. Scores, labels, typed words and
+  code stay as text on top and keep the full contrast floor.
+- **Boards that grow with the window.** From a quarter tmux window up, each board draws itself
+  larger and sharper as the window grows, keeping its own grid and rules.
 - **No flashing.** Every frame passes through the Scenes flash meter. Reduced motion is honoured
   from a flag, an environment variable and the system setting.
 - **Sound effects and calm music**, synthesised by the game itself. Each has its own volume and
@@ -69,11 +74,11 @@ Every still is Zacess Deep Contrast Dark at 100 by 30, part way through a game.
 
 | | | |
 | --- | --- | --- |
-| ![Stackline: circuit parts falling into two wells with the rails marked plus and minus](docs/images/stackline-deep-dark.svg)<br>Stackline | ![Merge Gates: four-bit tiles on a board beside a track of logic gates and the target output](docs/images/merge-gates-deep-dark.svg)<br>Merge Gates | ![Termle: guesses of the day's term with letters marked in place, elsewhere or not used](docs/images/termle-deep-dark.svg)<br>Termle |
-| ![Signal: notes travelling along three lanes towards the line](docs/images/signal-deep-dark.svg)<br>Signal | ![Trace: wire laid from a source to light nodes on a grid](docs/images/trace-deep-dark.svg)<br>Trace | ![Drift: a lantern over a quiet landscape gathering light](docs/images/drift-deep-dark.svg)<br>Drift |
-| ![Rooms: a room of a broken server with parts, faults and doors](docs/images/rooms-deep-dark.svg)<br>Rooms | ![Relay: a packet on a track of timed gates, portals and the exit](docs/images/relay-deep-dark.svg)<br>Relay | ![Through Ball: three attackers, three defenders and a keeper with the open passing lane dotted](docs/images/through-ball-deep-dark.svg)<br>Through Ball |
-| ![Slipstream: a car on a three-lane road behind traffic with the fuel gauge on the dash](docs/images/slipstream-deep-dark.svg)<br>Slipstream | ![Array Guard: debris drifting towards five dishes with their shields](docs/images/array-guard-deep-dark.svg)<br>Array Guard | ![Heatsink: terms falling towards a chip with its heat gauge](docs/images/heatsink-deep-dark.svg)<br>Heatsink |
-| ![Touch Typing: a lesson line with a marked slip above the keyboard and the finger for the next key](docs/images/touch-typing-deep-dark.svg)<br>Touch Typing | ![Learn to Code: a Python lesson with a blank in the code and a message that teaches](docs/images/learn-to-code-deep-dark.svg)<br>Learn to Code |   |
+| ![Stackline: copper chips falling into two circuit board wells with the rails marked plus and minus](docs/images/stackline-deep-dark.svg)<br>Stackline | ![Merge Gates: rounded four-bit tiles in a tray of sockets beside a track of logic gates and the target output](docs/images/merge-gates-deep-dark.svg)<br>Merge Gates | ![Termle: guesses of the day's term on letter tiles, marked in place, elsewhere or not used](docs/images/termle-deep-dark.svg)<br>Termle |
+| ![Signal: triangle and round notes travelling along three lanes towards their outlines on the line](docs/images/signal-deep-dark.svg)<br>Signal | ![Trace: copper traces laid from a diamond source to light ring nodes on a circuit board](docs/images/trace-deep-dark.svg)<br>Trace | ![Drift: a lantern over moonlit hills with pines and reeds, gathering sparks of light](docs/images/drift-deep-dark.svg)<br>Drift |
+| ![Rooms: a server room of cabinets on a raised floor with parts, faults and doors](docs/images/rooms-deep-dark.svg)<br>Rooms | ![Relay: a packet on a checkered floor of brick walls, timed gates, gems and the exit](docs/images/relay-deep-dark.svg)<br>Relay | ![Through Ball: numbered attackers, striped defenders and a keeper on a striped pitch with the open passing lane dotted](docs/images/through-ball-deep-dark.svg)<br>Through Ball |
+| ![Slipstream: cars seen from above on a road between tree-lined verges, with the pit lane and the fuel gauge on the dash](docs/images/slipstream-deep-dark.svg)<br>Slipstream | ![Array Guard: rocks falling from a night sky towards five radio dishes on masts, with the cannon on its rail](docs/images/array-guard-deep-dark.svg)<br>Array Guard | ![Heatsink: terms running along copper heat pipes into a chip with its heat gauge](docs/images/heatsink-deep-dark.svg)<br>Heatsink |
+| ![Touch Typing: a lesson line with a marked slip above a keyboard of coloured keycaps and the finger for the next key](docs/images/touch-typing-deep-dark.svg)<br>Touch Typing | ![Learn to Code: a Python lesson in an editor with a blank in its own slot and a message that teaches](docs/images/learn-to-code-deep-dark.svg)<br>Learn to Code |   |
 
 Every game also has a still in Zacess Light in [`docs/images`](docs/images/), with a few in other
 themes and in the compact and large layouts.
@@ -81,7 +86,8 @@ themes and in the compact and large layouts.
 Every game also has a short recording of real play in [`docs/frames`](docs/frames/): seven seconds
 at ten frames a second, 80 by 24, in Zacess Deep Contrast Dark. Each file is JSON in the same
 format as the [Zacess Scenes](https://github.com/zacesshq/scenes) showcase frames, a list of frames
-that each hold runs of text in one colour, so one web player shows both. Every recording passes the
+that each hold runs of text in one colour, so one web player shows both. Pixel art is written as
+full and lower half blocks, the same encoding Scenes uses, so the boards play back without seams. Every recording passes the
 flash meter, so it never changes a large area more than three times a second. The keys each
 recording plays are in [`scripts/recordings.txt`](scripts/recordings.txt) and
 `scripts/snapshots.sh` makes the stills and the frames again from the program.
@@ -93,7 +99,7 @@ flowchart LR
     Keys["Keys from the terminal<br>or a --keys script"] --> Game["One game's rules<br>in Rust"]
     Levels["Levels in Lua<br>levels/ and ~/.config"] --> Game
     Theme["Zacess theme<br>from Scenes"] --> Frame
-    Game --> Frame["Frame of coloured text"]
+    Game --> Frame["Frame of pixel art<br>and coloured text"]
     Frame --> Meter["Flash meter<br>from Scenes"]
     Meter --> Terminal["Terminal"]
     Meter --> Still["SVG still<br>docs/images"]
@@ -101,8 +107,9 @@ flowchart LR
     Game --> Scores["scores.txt<br>best scores and progress"]
 ```
 
-Every key goes to one game's rules, which read their levels from Lua. The game draws a frame of
-coloured text in the theme Scenes provides and every frame passes the flash meter before it reaches
+Every key goes to one game's rules, which read their levels from Lua. The game paints its board as
+half-block pixel art on the Scenes pixel canvas, two pixels to a character cell, then writes its
+text on top, all in the theme Scenes provides. Every frame passes the flash meter before it reaches
 the terminal, an SVG still or the JSON frames the website plays. Best scores and progress go to one
 plain text file.
 
@@ -110,10 +117,6 @@ plain text file.
 
 The games are one program, `zacess-games`. Sound is played by the system's own player (`afplay` on
 macOS, PipeWire, PulseAudio or ALSA on Linux and PowerShell on Windows), so nothing else is needed.
-
-> [!NOTE]
-> The Homebrew tap and the winget package follow the 0.4.0 release. Until each is live, Cargo or a
-> release archive works on every platform.
 
 ### macOS and Linux with Homebrew
 
@@ -151,8 +154,8 @@ Each archive has a `.sha256` file beside it and holds the guides as well as the 
 sum, unpack the archive and put `zacess-games` (or `zacess-games.exe`) somewhere on your `PATH`.
 
 ```sh
-shasum -a 256 -c zacess-games-v0.4.0-aarch64-apple-darwin.tar.gz.sha256
-tar -xzf zacess-games-v0.4.0-aarch64-apple-darwin.tar.gz
+shasum -a 256 -c zacess-games-v1.0.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf zacess-games-v1.0.0-aarch64-apple-darwin.tar.gz
 ```
 
 ## Documentation
@@ -191,8 +194,8 @@ each language and the sound settings live in `~/.local/state/zacess-games/scores
 ## Accessibility
 
 Zacess products are built for people with low vision, light sensitivity and motion sensitivity
-first. Every game keeps the theme's contrast floor, never flashes and slows down under reduced
-motion. Neither colour nor sound is ever the only signal and every game can be paused at any
+first. Every game keeps the theme's contrast floor for text, keeps its pixel art calm behind it,
+never flashes and slows down under reduced motion. Neither colour nor sound is ever the only signal and every game can be paused at any
 moment. The full statement is in [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
 ## Contributing

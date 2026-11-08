@@ -10,7 +10,8 @@
 - **Something is hard to see, moves too much, flashes or relies on sound alone:** use the
   [accessibility problem form](https://github.com/zacesshq/games/issues/new?template=accessibility_problem.yml).
   An accessibility problem is a bug. You never need to share a diagnosis or anything personal. To
-  report privately, email [contact@zacess.com](mailto:contact@zacess.com).
+  report privately, email [support@zacess.com](mailto:support@zacess.com).
+- **Help with a game or a level:** email [support@zacess.com](mailto:support@zacess.com).
 - **Security vulnerabilities:** never open a public issue. Follow [SECURITY.md](SECURITY.md).
 - **Anything else:** email [contact@zacess.com](mailto:contact@zacess.com).
 
@@ -23,6 +24,6 @@
 - `?` inside any game for its how-to-play page
 
 > [!NOTE]
-> The games are in development, so there is nothing to install yet. News of the first release is
-> posted in [Discussions](https://github.com/orgs/zacesshq/discussions) and on
-> [zacess.com](https://zacess.com).
+> [README.md](README.md#install) has the install steps for Homebrew, winget, Cargo and the release
+> archives. News of each release is posted in [Discussions](https://github.com/orgs/zacesshq/discussions)
+> and on [zacess.com](https://zacess.com).

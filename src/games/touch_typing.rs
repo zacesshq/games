@@ -10,10 +10,12 @@ use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
 use crate::keyboard::{self, Layout};
+use crate::pixels_ui::{Field, Ink, text_on};
 use crate::scores::Scores;
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, Tier, g};
+use zacess_scenes::colour::Rgb;
 
 pub const INFO: Info = Info {
     id: "touch-typing",
@@ -685,6 +687,15 @@ impl Game for TouchTyping {
         }
         // a short window keeps the one-line hint above and leaves the keyboard out
         if area.h >= 17 {
+            // keys stand on their own row with a lip under each where there is room. They sit
+            // row on row where there is not
+            let pitch = if r.h >= 26 {
+                3
+            } else if r.h >= 20 {
+                2
+            } else {
+                1
+            };
             draw_keyboard(
                 c,
                 self.layout,
@@ -693,6 +704,7 @@ impl Game for TouchTyping {
                 line.get(self.typed.len())
                     .copied()
                     .filter(|_| self.result.is_none()),
+                pitch,
             );
         }
         let weak: Vec<String> = self
@@ -792,8 +804,8 @@ impl Game for TouchTyping {
 }
 
 impl TouchTyping {
-    /// The large layout: the lines to come, a keyboard of boxed keys with the finger inside
-    /// each and a side panel of speed, accuracy, weak keys and progress.
+    /// The large layout: the lines to come, a keyboard of tall pixel keycaps with the finger's
+    /// brackets round each letter and a side panel of speed, accuracy, weak keys and progress.
     fn draw_large(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
         let panel_w = 36;
@@ -905,39 +917,70 @@ impl TouchTyping {
         let target = next.and_then(|ch| self.layout.find(ch)).map(|k| k.key);
         let kx0 = left.x + (left.w - 70).max(0) / 2;
         let ky0 = info_y + 2;
+        let sy = ky0 + 12;
+        // the keys as pixel keycaps: a face the letter is written on and a lip below, in the
+        // finger's colour, with the next key's lip and marks in the brightest colour
+        let ink = Ink::new(pal);
+        let mut layer = Field::new(pal, Rect::new(kx0, ky0, 72, 15), pal.theme.background);
+        let mut caps: Vec<(i32, i32, String, Rgb)> = Vec::new();
         for (r, (indent, keys)) in self.layout.rows().iter().enumerate() {
             for (i, &(k, _)) in keys.iter().enumerate() {
                 let f = self.layout.finger_at(r, i);
-                let x = kx0 + indent * 2 + i as i32 * 5;
-                let y = ky0 + r as i32 * 3;
+                let x = indent * 2 + i as i32 * 5;
+                let y = r as i32 * 3;
                 let chosen = target == Some(k);
                 let colour = if chosen {
                     pal.bright
                 } else {
                     finger_colour(c, f)
                 };
-                let line = if chosen { Line::Double } else { Line::Light };
-                c.boxed(Rect::new(x, y, 5, 3), line, colour);
-                let (open, close) = finger_brackets(f);
-                c.put(x + 1, y + 1, open, colour);
-                c.put(x + 2, y + 1, k.to_ascii_uppercase(), colour);
-                c.put(x + 3, y + 1, close, colour);
+                keycap(
+                    &mut layer,
+                    &ink,
+                    x + 1,
+                    2 * y + 1,
+                    3,
+                    5,
+                    finger_colour(c, f),
+                    colour,
+                    chosen,
+                );
+                let (open, close) = if chosen {
+                    ('»', '«')
+                } else {
+                    finger_brackets(f)
+                };
+                caps.push((
+                    kx0 + x + 1,
+                    ky0 + y + 1,
+                    format!("{open}{}{close}", k.to_ascii_uppercase()),
+                    colour,
+                ));
             }
         }
         let space = target == Some(' ');
-        let sy = ky0 + 12;
-        let sb = Rect::new(kx0 + 17, sy, 31, 3);
-        c.boxed(
-            sb,
-            if space { Line::Double } else { Line::Light },
-            if space { pal.bright } else { pal.cyan },
+        let space_colour = if space { pal.bright } else { pal.cyan };
+        keycap(
+            &mut layer,
+            &ink,
+            18,
+            2 * 12 + 1,
+            29,
+            5,
+            pal.cyan,
+            space_colour,
+            space,
         );
-        c.text(
-            sb.x + 12,
-            sy + 1,
-            "space",
-            if space { pal.bright } else { pal.cyan },
-        );
+        layer.paint(c);
+        for (x, y, text, colour) in caps {
+            text_on(c, x, y, &text, colour);
+        }
+        let bar = if space {
+            "»    space    «"
+        } else {
+            "     space     "
+        };
+        text_on(c, kx0 + 24, sy + 1, bar, space_colour);
         c.text(
             kx0,
             sy + 4,
@@ -1089,49 +1132,114 @@ fn finger_brackets(f: u8) -> (char, char) {
     }
 }
 
-/// The keyboard: four rows of keys plus the space bar, each key in its finger's shape and colour,
-/// with the next key marked » « in the brightest colour.
-fn draw_keyboard(c: &mut Canvas, layout: Layout, x: i32, y: i32, next: Option<char>) {
+/// The keyboard: four rows of keys plus the space bar, each key a pixel keycap in its finger's
+/// colour with its finger's brackets round the letter. The next key is marked » « in the
+/// brightest colour. With a `pitch` of two rows each key has a lip under it; with three it
+/// stands taller, its face round the letter's row.
+fn draw_keyboard(c: &mut Canvas, layout: Layout, x: i32, y: i32, next: Option<char>, pitch: i32) {
     let pal = c.pal;
+    let ink = Ink::new(pal);
     let target = next.and_then(|ch| layout.find(ch)).map(|k| k.key);
+    let mut layer = Field::new(pal, Rect::new(x, y, 58, 5 * pitch), pal.theme.background);
+    // the face's height and where it starts in pixels from the top of the key's rows
+    let (cap_h, cap_y) = match pitch {
+        1 => (2, 0),
+        2 => (3, 0),
+        _ => (5, 1),
+    };
+    let letter_row = i32::from(pitch >= 3);
+    let mut caps: Vec<(i32, i32, String, Rgb)> = Vec::new();
     for (r, (indent, keys)) in layout.rows().iter().enumerate() {
         for (i, &(k, _)) in keys.iter().enumerate() {
-            let kx = x + indent + i as i32 * 4;
+            let kx = indent + i as i32 * 4;
+            let ky = r as i32 * pitch;
             let f = layout.finger_at(r, i);
             let colour = finger_colour(c, f);
-            let (open, close) = if target == Some(k) {
+            let chosen = target == Some(k);
+            let (open, close) = if chosen {
                 ('»', '«')
             } else {
                 finger_brackets(f)
             };
-            let cap = if target == Some(k) {
-                pal.bright
-            } else {
-                colour
-            };
-            c.put(kx, y + r as i32, open, cap);
-            c.put(kx + 1, y + r as i32, k.to_ascii_uppercase(), cap);
-            c.put(kx + 2, y + r as i32, close, cap);
+            let cap = if chosen { pal.bright } else { colour };
+            keycap(
+                &mut layer,
+                &ink,
+                kx,
+                2 * ky + cap_y,
+                3,
+                cap_h,
+                colour,
+                cap,
+                chosen,
+            );
+            caps.push((
+                x + kx,
+                y + ky + letter_row,
+                format!("{open}{}{close}", k.to_ascii_uppercase()),
+                cap,
+            ));
         }
     }
     let space = target == Some(' ');
+    let space_colour = if space { pal.bright } else { pal.cyan };
+    let sy = 4 * pitch;
+    keycap(
+        &mut layer,
+        &ink,
+        14,
+        2 * sy + cap_y,
+        17,
+        cap_h,
+        pal.cyan,
+        space_colour,
+        space,
+    );
+    layer.paint(c);
+    for (cx, cy, text, colour) in caps {
+        text_on(c, cx, cy, &text, colour);
+    }
     let bar = if space {
         "»     space     «"
     } else {
         "|     space     |"
     };
-    c.text(
-        x + 14,
-        y + 4,
-        bar,
-        if space { pal.bright } else { pal.cyan },
-    );
+    text_on(c, x + 14, y + sy + letter_row, bar, space_colour);
     c.text(
         x,
-        y + 5,
+        y + sy + pitch,
         "( ) little  { } ring  [ ] middle  < > index",
         pal.muted,
     );
+}
+
+/// A keycap at pixel `x`, `y`, `w` pixels wide and `h` tall: a face for its letter and, when
+/// `h` leaves room, a lip of one pixel under it. The face is a tint of the finger's colour that
+/// keeps the letter at the floor; the lip is a solid deep shade of that colour, in the
+/// brightest colour on the next key, so each key keeps its outline with colour off.
+#[allow(clippy::too_many_arguments)]
+fn keycap(
+    layer: &mut Field,
+    ink: &Ink,
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+    hue: Rgb,
+    text: Rgb,
+    chosen: bool,
+) {
+    let face = ink.under(hue, if chosen { 0.42 } else { 0.24 }, &[text]);
+    let face_h = if h >= 3 { h - 1 } else { h };
+    layer.px.fill_rect(x, y, w, face_h, face);
+    if h >= 3 {
+        let lip = if chosen {
+            ink.solid(text)
+        } else {
+            ink.lit(hue).1
+        };
+        layer.px.fill_rect(x, y + face_h, w, 1, lip);
+    }
 }
 
 #[cfg(test)]

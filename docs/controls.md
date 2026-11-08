@@ -112,8 +112,8 @@ Every game and the menu lay themselves out for the window they are in, chosen ag
 | --- | --- |
 | Below 60 by 20 | A centred message giving the size needed and the size now |
 | From 60 by 20 (a quarter tmux window) | Compact: one status line, one key line, side panels left out where they would not fit (their facts move to the status line) and smaller boards |
-| From 100 by 30 | Standard: a status bar, two key lines and the full side panels |
-| From 160 by 45 | Large: boards drawn at twice the size, a larger Touch Typing keyboard of boxed keys with a progress panel and wider text in the typing and coding games |
+| From 100 by 30 | Standard: a status bar, two key lines, the full side panels and pixel boards that grow to fill the room beside them |
+| From 160 by 45 | Large: pixel boards drawn larger still with finer shapes, Merge Gates drawn at twice the size, a larger Touch Typing keyboard of taller keycaps with a progress panel and wider text in the typing and coding games |
 
 ## Keyboard layouts
 
@@ -129,7 +129,7 @@ The layout comes from the `--layout` flag, then `ZACESS_KEYBOARD`, then the one 
 
 ## The theme
 
-The games are drawn in a Zacess theme picked in this order: `--theme`, then `ZACESS_THEME`, then the theme state file `$XDG_STATE_HOME/zacess/theme` or `~/.local/state/zacess/theme`, then Zacess Deep Contrast Dark. The state file is the one [Zacess Scenes](https://github.com/zacesshq/scenes/blob/main/docs/themes.md) reads, so any tool that writes it switches the games and the scenes together. It holds a theme id such as `deep-contrast-dark`. It can instead hold `auto` followed by a dark and a light id, to follow the system's dark mode. On Windows the file is under the user folder, `%USERPROFILE%\.local\state\zacess\theme`.
+The games are drawn in a Zacess theme picked in this order: `--theme`, then `ZACESS_THEME`, then the theme state file `$XDG_STATE_HOME/zacess/theme` or `~/.local/state/zacess/theme`, then Zacess Deep Contrast Dark. The state file is the one [Zacess Scenes](https://github.com/zacesshq/scenes/blob/main/docs/themes.md) reads, so any tool that writes it switches the games and the scenes together. The ten themes are Light, Dark, Yellow on Black, Cream, High Contrast Dark, High Contrast Light, Deep Contrast Dark, Deep Contrast Light, Warm Dark and Warm Light, each with a short name such as `hc-light` or `warm-dark`. It holds a theme id such as `deep-contrast-dark`. It can instead hold `auto` followed by a dark and a light id, to follow the system's dark mode. On Windows the file is under the user folder, `%USERPROFILE%\.local\state\zacess\theme`.
 
 ## Settings and records
 

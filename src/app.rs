@@ -76,10 +76,11 @@ pub fn draw_game(c: &mut Canvas, game: &dyn Game, area: Rect) -> usize {
         let sy = ((fh - area.h) as f32 * ay).round() as i32;
         for y in 0..area.h {
             for x in 0..area.w {
+                // pixel imagery is copied whole, backgrounds included
                 if let Some(cell) = full.get(sx + x, sy + y)
-                    && cell.ch != ' '
+                    && (cell.ch != ' ' || cell.bg.is_some())
                 {
-                    c.frame.put(area.x + x, area.y + y, cell.ch, cell.colour);
+                    c.frame.put_cell(area.x + x, area.y + y, cell);
                 }
             }
         }
@@ -982,8 +983,8 @@ mod tests {
                     {
                         problems.push(format!("{} flashes at {w}x{h}", info.id));
                     }
-                    for colour in frame.colours() {
-                        if t.contrast_of(colour) < t.floor() {
+                    for (_, ratio) in crate::pixels_ui::tests::text_contrasts(&frame, t) {
+                        if ratio < t.floor() {
                             problems.push(format!("{} below the floor at {w}x{h}", info.id));
                         }
                     }
@@ -1121,14 +1122,15 @@ mod tests {
                 let game = games::make(info.id, setup()).unwrap();
                 let keys = game.demo();
                 let (frame, _) = headless(info.id, setup(), &keys, (80, 24), t, None).unwrap();
-                for colour in frame.colours() {
+                // text keeps the floor against what it sits on: a tile or a shirt of its own, or
+                // the theme's background
+                for (colour, ratio) in crate::pixels_ui::tests::text_contrasts(&frame, t) {
                     assert!(
-                        t.contrast_of(colour) >= t.floor(),
-                        "{} in {}: {} at {:.2}:1",
+                        ratio >= t.floor(),
+                        "{} in {}: {} at {ratio:.2}:1",
                         info.id,
                         t.name,
                         colour.hex(),
-                        t.contrast_of(colour)
                     );
                 }
             }

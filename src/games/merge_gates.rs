@@ -7,6 +7,7 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
@@ -283,6 +284,67 @@ impl MergeGates {
         self.cursor = (x as usize, y as usize);
     }
 
+    /// The boxed board as pixel art: a tray of sockets with rounded tiles on them, each with a lit
+    /// top edge, a pale face for the value, a shaded lower edge and merge depth as pips. The
+    /// cursor is a bright rim; a tile that just merged has a lighter rim for a moment.
+    fn paint_board(&self, c: &mut Canvas, board: Rect, cw: i32, ch: i32) {
+        let pal = c.pal;
+        let ink = Ink::new(pal);
+        let inner = Rect::new(board.x + 1, board.y + 1, board.w - 2, board.h - 2);
+        let mut f = Field::new(pal, inner, ink.surface(pal.magenta, 0.06));
+        let socket = ink.tint(pal.magenta, 0.12);
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                let (x0, y0) = (x as i32 * cw, y as i32 * ch * 2);
+                let here = (x, y) == self.cursor;
+                let Some(t) = self.board[y][x] else {
+                    f.sprite(
+                        x0,
+                        y0,
+                        &[".sssss.", "sssssss", "sssssss", "sssssss", ".sssss."],
+                        &[('s', socket)],
+                    );
+                    if here {
+                        f.sprite(
+                            x0,
+                            y0,
+                            &[".bbbbb.", "b.....b", "b.....b", "b.....b", ".bbbbb."],
+                            &[('b', pal.bright)],
+                        );
+                    }
+                    continue;
+                };
+                let colour = self.tile_colour(c, t);
+                let glowing = self.glow.is_some_and(|(p, _)| p == (x, y));
+                let rim = if here {
+                    pal.bright
+                } else if glowing {
+                    ink.highlight(colour, 0.45)
+                } else {
+                    colour
+                };
+                let low = if here {
+                    pal.bright
+                } else {
+                    ink.shadow(colour, 0.35)
+                };
+                let face = ink.surface(colour, 0.3);
+                // the lit band carries no text, so it can be a full tone of the tile's colour
+                let lit = ink.soften(colour, 0.45);
+                f.sprite(
+                    x0,
+                    y0,
+                    &[".rrrrr.", "rlllllr", "rfffffr", "rfffffr", ".ddddd."],
+                    &[('r', rim), ('l', lit), ('f', face), ('d', low)],
+                );
+                for d in 0..i32::from(t.depth.min(4)) {
+                    f.set(x0 + 1 + d, y0 + 4, ink.highlight(colour, 0.5));
+                }
+            }
+        }
+        f.paint(c);
+    }
+
     fn tile_colour(&self, c: &Canvas, t: Tile) -> zacess_scenes::colour::Rgb {
         let pal = c.pal;
         // colour follows the count of ones, shown as the bits themselves too
@@ -359,6 +421,9 @@ impl Game for MergeGates {
         let r = area.centre(board_w + 2 + panel_w, board_h);
         let board = Rect::new(r.x, r.y, board_w, board_h);
         c.titled(board, Line::Heavy, pal.magenta, "Board", pal.bright);
+        if !flat {
+            self.paint_board(c, board, cw, ch);
+        }
         for y in 0..SIZE {
             for x in 0..SIZE {
                 let cell = Rect::new(
@@ -394,34 +459,18 @@ impl Game for MergeGates {
                     }
                     continue;
                 }
-                match self.board[y][x] {
-                    Some(t) => {
-                        let colour = self.tile_colour(c, t);
-                        let glowing = self.glow.is_some_and(|(p, _)| p == (x, y));
-                        let line = if here {
-                            Line::Double
-                        } else if glowing {
-                            Line::Heavy
-                        } else {
-                            Line::Round
-                        };
-                        let edge = if here { pal.bright } else { colour };
-                        c.boxed(cell, line, edge);
-                        c.text(cell.x + 2, cell.y + 1, &bits(t.value), colour);
-                        // merge depth as small pips on the lower edge
-                        for d in 0..t.depth.min(4) {
-                            c.put(cell.x + 2 + i32::from(d), cell.y + 2, g('•', 'o'), colour);
-                        }
-                    }
-                    None => {
-                        c.put(cell.x + cw / 2 - 1, cell.y + 1, '·', pal.muted);
-                        if here {
-                            c.boxed(cell, Line::Light, pal.text);
-                        }
-                    }
+                if let Some(t) = self.board[y][x] {
+                    // the value is text on the tile's pale face
+                    c.text(
+                        cell.x + 2,
+                        cell.y + 1,
+                        &bits(t.value),
+                        self.tile_colour(c, t),
+                    );
                 }
                 if here && self.grabbed {
-                    c.put(cell.x + cw - 2, cell.y, g('✥', '*'), pal.bright);
+                    // on the tile's face, beside its value, where text keeps its contrast
+                    c.put(cell.x + 1, cell.y + 1, g('✥', '*'), pal.bright);
                 }
             }
         }

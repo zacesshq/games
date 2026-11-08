@@ -6,6 +6,7 @@ mod games;
 mod keyboard;
 mod levels;
 mod music;
+mod pixels_ui;
 mod record;
 mod scores;
 mod sound;
@@ -572,9 +573,15 @@ mod tests {
     }
 
     #[test]
-    fn every_game_draws_headless_in_light_dark_and_high_contrast() {
-        for id in ["dark", "light", "deep-dark", "hc-light", "yellow"] {
-            let t = theme::find(id).unwrap_or_else(|| panic!("{id} is not a theme"));
+    fn every_game_draws_headless_in_every_theme() {
+        // every theme in the palette, so a theme added to it is covered without a test change
+        for t in theme::all() {
+            assert_eq!(
+                theme::find(t.short()).map(|f| f.id),
+                Some(t.id),
+                "{}",
+                t.name
+            );
             for info in games::ALL {
                 let setup = Setup {
                     seed: 3,

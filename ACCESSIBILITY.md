@@ -11,59 +11,85 @@ the key lines are checked by the tests in `src/`.
   theme state file that [Zacess Scenes](https://github.com/zacesshq/scenes/blob/main/docs/themes.md)
   reads, so the games and the scenes always match. [docs/controls.md](docs/controls.md#the-theme)
   has the order.
-- **Every colour keeps the theme's floor.** Each colour comes from a Zacess palette role that is
-  checked against the theme background: at least 4.5 to 1 on most themes and at least 7 to 1 on the
-  High Contrast and Deep Contrast themes. A role that would miss the floor falls back to the text
-  colour. A test draws every game in all eight themes and checks every colour on screen.
-- **The background is painted.** Every cell is drawn on the theme's own background, so the contrast
-  holds even when the terminal is set to another theme. With `--colour 256` each colour maps to the
-  nearest table entry that still keeps the floor.
+- **All text keeps the theme's floor.** Each colour comes from a Zacess palette role that is
+  checked against the theme background: at least 7 to 1 on eight of the ten themes and at least
+  4.5 to 1 on the softer Warm Dark and Warm Light. A role that would miss the floor falls back to
+  the text colour. A test draws every game in all ten themes and checks every text colour on
+  screen against what it sits on.
+- **Pixel art never competes with the text.** Every game draws its board as half-block pixel
+  art, two pixels to a character cell. Ground and scenery are tints of the background held under
+  3 to 1, so they read as calm backdrop. Where text sits on a board, such as a letter on a tile, a
+  number on a shirt or code in the editor, the tint underneath is held lower still, so the text
+  keeps the full floor against it. A test holds every game in every theme to this at a small and
+  a large window size.
+- **Pieces are solid shapes.** In Signal, Slipstream, Stackline, Termle, Through Ball, Touch
+  Typing and Trace every piece is drawn at least 3.2 to 1 from the background and nothing sits
+  between ground and piece, so a shape keeps its outline even for someone who cannot tell the
+  colours apart. The other seven games shade their pieces from the theme's own colours with a lit
+  and a shaded side, which keeps each shape apart from its neighbours.
+- **The background is painted.** Every cell is drawn on the theme's own background or on the
+  pixel colour under it, so the contrast holds even when the terminal is set to another theme.
+  With `--colour 256` each text colour maps to the nearest table entry that still keeps the floor.
+  Pixel art maps to the nearest entry of any kind, as it does in Zacess Scenes, since it carries
+  no words.
 - **Colour is never the only signal.** Every piece, tile and state has a shape or letter of its own
   as well:
-  - Stackline parts are `━`, `┃`, `╋` and `───` for feedback. A full row that will not clear is
-    marked `✕` at both ends and the rails are marked `+` and `-`.
-  - Merge Gates tiles show their bits as text. The tile under the cursor has a double outline, a
-    grabbed tile a `✥` and the target is drawn as filled and empty squares beside its bits.
-  - Termle marks letters `[A]=` in place, `◂` or `▸` elsewhere and `·` not used. The letter strip
-    uses `=`, `~` and `·` the same way.
-  - Signal lanes are `▲`, `●` and `▼` with their keys written beside them. Results are written: In
-    time, Close or Missed.
-  - Trace nodes are hollow when unlit and filled with brackets when lit. Arrow nodes point their way
-    and the pen is bracketed with `❰ ❱`.
-  - Rooms faults are a capital letter and `!`, parts a small letter, fixed faults `✓`, glitches `g≈`
-    and locked doors a solid bar.
-  - Relay gates are `┊` when open and `██` when shut for the next move, with the gate letter beside
-    them. Portals are `(A)` and the exit is bracketed while it is shut.
-  - Through Ball attackers are numbered `(1)`, the ball carrier carries `●`, the chosen pass target
-    is `<2>`, defenders are `✕` and the keeper is `[K]`. An open lane is dotted with `•` and the
-    panel says in words whether the pass is open or blocked and which goal rows the keeper covers.
-  - Slipstream's car has a pointed front (`▗▲▲▖`) where traffic is square. The slipstream shows as
-    `≈` behind the car ahead and in words on the dash. The pit lane is walled by a heavy line and
-    marked `P` and `+`. After a bump the car turns the warning colour and the bump count shows as
-    `✕` marks.
-  - Array Guard's debris is `◇` (one hit) or `◆` (two hits), capsules carry their letter (`[S]`,
-    `[H]` or `[L]`) and each dish's shield is a bar over it as well as a count in the panel. A lost
-    dish turns to `╳`.
+  - Stackline parts are chips whose copper runs across, up and down or both, so the wire each
+    carries shows in its shape. A full row that will not clear is marked with a cross on both
+    rails, a feedback row's break with a small cross and the rails are marked `+` and `-`.
+  - Merge Gates tiles show their bits as text on the tile's face, with pips for how many merges
+    made them. The tile under the cursor has a bright rim, a grabbed tile a `✥` and the target is
+    drawn as filled and empty squares beside its bits.
+  - Termle letters sit on tiles and are marked `[A]=` in place, `◂` or `▸` elsewhere and `·` not
+    used, with a solid lip under the tile where it carries news. The letter strip uses `=`, `~`
+    and `·` the same way.
+  - Signal notes point up on the high lane, are round on the middle lane and point down on the low
+    lane, with the keys written beside the lanes. Each lane has an outline of its note's shape on
+    the line. Results are written: In time, Close or Missed.
+  - Trace's source is a diamond. Nodes are rings when unlit and filled when lit, arrow nodes are
+    triangles pointing their way, vias are small crosses and the pen is marked by corner brackets
+    round its cell.
+  - Rooms faults are a capital letter and `!`, parts a small letter and fixed faults `✓`.
+    Glitches are knots of noise, the racks are cabinets and locked doors are a solid bar that turns
+    to arrows once open.
+  - Relay gates are a dashed line when open and solid bars when shut for the next move, with the
+    gate letter beside them. Portals are rings with their letter, bits are small gems and the exit
+    is marked `⇥` and bracketed, dim while it is shut.
+  - Through Ball attackers wear their number on the shirt and the ball sits at the carrier's feet.
+    Defenders wear plain striped shirts and the keeper wears `K` and holds up gloves. The chosen
+    receiver stands in a ring and the lane is bold dots when open and faint specks when blocked.
+    The panel says in words whether the pass is open or blocked and which goal rows the keeper
+    covers.
+  - Slipstream's car carries a light stripe down its middle that traffic does not have. The
+    slipstream shows as streaks of air past the car and in words on the dash. The pit lane is
+    walled by a solid line and marked `P` with crosses on its floor. After a bump the car turns
+    the warning colour and the bump count shows as `✕` marks.
+  - Array Guard's large debris is a bigger rock that shrinks after one hit, capsules carry their
+    letter (S, H or L) on a pale face and each dish's shield is a row of lamps on its cabinet as
+    well as a bar and a count in the panel. A lost dish is a bowl fallen beside a broken mast.
   - Heatsink marks the word being typed with `▸` and shows the typed part in another colour. The
     chip's heat is a gauge with the degrees written under it.
   - Touch Typing shows each key's finger by bracket shape as well as colour: `( )` little, `{ }`
-    ring, `[ ]` middle and `< >` index. The next key is marked `» «` and its finger is written out
-    in words, with Shift or Option when needed. The keyboard follows the layout in use (UK Mac, UK
-    PC or US), found from the system, so the hints match the keys under the player's fingers. A
-    missed key is marked `^` underneath, never by blinking.
+    ring, `[ ]` middle and `< >` index. Each key is a keycap with a solid lip, so it keeps its
+    outline. The next key is marked `» «` and its finger is written out in words, with Shift or
+    Option when needed. The keyboard follows the layout in use (UK Mac, UK PC or US), found from
+    the system, so the hints match the keys under the player's fingers. A missed key is marked `^`
+    underneath, never by blinking.
   - Learn to Code marks the blank being typed into with `▸` and the cursor inside it with a thin
-    bar `▏`, marks right answers `✓` and wrong ones `✗`, ticks the levels done in the level list
-    and explains every mistake in words.
-- **Plain glyphs.** `--basic` swaps the geometric shapes for ASCII stand-ins. The same happens on its
-  own in a console known to lack them (the Linux console and the classic Windows console).
+    bar `▏`, sets every blank in a slot of its own, marks right answers `✓` and wrong ones `✗`,
+    ticks the levels done in the level list and explains every mistake in words.
+- **Plain glyphs.** `--basic` swaps the geometric shapes in text for ASCII stand-ins. The same
+  happens on its own in a console known to lack them (the Linux console and the classic Windows
+  console).
 
 ## Motion and flashing
 
 - **Nothing flashes.** Every frame passes through the Scenes flash meter, which holds back any frame
   that would change a large area more than three times in a second, inside the limit WCAG 2.3.1
   sets. A test plays every game in every theme and checks the limit. Clears, merges and wins are
-  marked by a calm change of shape rather than blinking: a joined row turns to `═══` for a third of
-  a second, a merged tile gets a heavy outline and a caught note leaves a ring that shrinks in three
+  marked by a calm change of shape rather than blinking: a joined row lights up with one wire from
+  rail to rail and a diamond on each rail for a third of a second, a merged tile gets a lighter rim
+  for a moment and a caught note fills its outline and leaves a glow that shrinks in three still
   steps.
 - **Reduced motion.** `--reduced-motion`, `ZACESS_REDUCED_MOTION=1` or the system setting (Reduce
   Motion on macOS, animations off in GNOME or in Windows) slows things down. Stackline falls at 1.6
@@ -119,8 +145,10 @@ the key lines are checked by the tests in `src/`.
 ## Size
 
 - **Fits any window from 60 by 20.** A compact layout keeps every game playable in a quarter tmux
-  window. From 160 by 45 boards are drawn at twice the size, which helps at a distance. Below the
-  minimum a centred message gives the size needed and the size now.
+  window. Below the minimum a centred message gives the size needed and the size now.
+- **Boards grow with the window.** Thirteen of the games draw their pixel art larger as the window
+  grows, keeping their own grid and rules, so a large window gives bigger and sharper shapes that
+  help at a distance. Merge Gates is drawn at half size and doubled from 160 by 45.
 - **The window has one layout.** Every game uses the same frame: the title and theme in the top
   border, a status bar with the sound setting at its right end, the play area, a line of the game's
   own keys, a line of the keys every game shares and a help box with the full keys.

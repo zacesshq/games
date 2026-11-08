@@ -6,9 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-08
+
 ### Added
 
+- Zacess Warm Dark and Zacess Warm Light, so the games are drawn in all ten Zacess themes. Both keep the 4.5 to 1 text floor the palette sets for them, pick up the `warm-dark` and `warm-light` short names for `--theme` and appear in the theme lists of the bug and accessibility issue forms. They reach the games through Zacess Scenes 1.0.0, which carries palette 1.0.0.
+- Tests that draw every game in every theme in the palette rather than a fixed list, that no theme sets a floor below 4.5 to 1 and that the six piece hues, the text and muted status colours, the fault, warning and success colours and each game's own colour stay apart in every theme.
 - The Zacess Games mark in `assets/` in light, dark, automatic and single colour versions, with a light and a dark lockup at the head of the README. A dark and a light banner and a 1280 by 640 social preview image sit beside them.
+- Pixel art boards in all fourteen games, drawn on the Zacess Scenes pixel canvas as half blocks, two pixels to a character cell, in the theme's own colours. Stackline's wells are circuit boards with copper chips and solder pads, Merge Gates has rounded tiles in a tray of sockets, Termle sets each letter on a tile with a lip and Signal's notes are triangles and beads that aim at outlines on the line. Trace lays copper traces between a diamond source and ring nodes, Drift glides a framed lantern over hills with pines, reeds, a moon and fireflies (a sun, clouds and butterflies on a light theme), Rooms is a raised floor of server cabinets and Relay a checkered floor with brick walls, gems, ring portals and barred gates. Through Ball is a striped pitch with a netted goal and small players who wear their numbers, Slipstream a road seen from above with tree-lined verges and cars with tyres and windscreens, Array Guard a night sky of tumbling rocks over radio dishes on masts and a domed cannon, Heatsink a chip fed by copper heat pipes, Touch Typing a keyboard of keycaps with solid lips and Learn to Code an editor page with each blank in a slot of its own and the output on a small screen. Scores, labels, typed words and code stay as text on top.
+- Boards that grow with the window. Each board draws itself larger as the window grows, at standard as well as large sizes, keeping its own grid and rules, so a large window gives bigger and finer shapes instead of a doubled small drawing. Merge Gates is still drawn at half size and doubled from 160 by 45.
+- Tests that text on pixel art keeps the theme's floor against the colour it sits on in every game and theme, that every pixel in Signal, Slipstream, Stackline, Termle, Through Ball, Touch Typing and Trace is either ground under 3 to 1 or a solid shape at 3.2 to 1 or more at four window sizes. Others check that the ground, surface and shade colours keep those limits in every theme.
+
+### Changed
+
+- The terminal paints each cell's own background, so the pixel art and the tiles under text reach it. With `--colour 256` pixel colours take the nearest table entry without the text floor, as they do in Zacess Scenes, while text keeps the floor.
+- Text set on pixel art keeps the colour under it as its background instead of cutting a hole in the board. The large-window zoom and the crop for small windows carry pixel cells whole.
+- The how-to-play pages in the games and in `docs/how-to-play.md` describe the pieces by their new shapes.
+- The stills in `docs/images` and the recordings in `docs/frames` are made again. The stills draw the boards in one crisp-edged group with runs of one colour merged and the recordings write pixels as full and lower half blocks, both from Scenes, so neither shows thin lines between rows.
+- Builds on Zacess Scenes 1.0.0 from crates.io, which brings the pixel canvas and the ten themes.
+- `ACCESSIBILITY.md` and the README describe the pixel art, the growing boards and the contrast rules for both. They also state the real floors: 7 to 1 on every theme but Warm Dark and Warm Light, which keep 4.5 to 1.
+- `docs/controls.md` describes the standard and large window sizes with the growing pixel boards. CONTRIBUTING and the winget description count ten themes.
+- The version placeholders in the bug and accessibility issue forms read 1.0.0.
+- SUPPORT.md points to the install steps in the README in place of the old note that there was nothing to install yet. It gives support@zacess.com for help with a game or a level and for private accessibility reports, as does the accessibility problem form, with contact@zacess.com kept for anything else.
+
+### Fixed
+
+- Drift no longer overflows its sky and hill arithmetic on a large random seed, which stopped a debug build in the random key test. Release builds draw exactly as before.
 
 ## [0.4.0] - 2026-11-04
 
@@ -62,7 +85,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - `docs/how-to-play.md` and `docs/controls.md` for every game and every key, flag, variable and setting, with 47 stills in `docs/images` that `scripts/snapshots.sh` makes again from the program.
 - CI: markdown linting, formatting, Clippy, the tests and a headless run of every game on Linux, macOS and Windows, a check that the stills are current, the release target builds, a check on the minimum Rust version (1.88) and a release workflow that attaches built binaries to the release a maintainer makes from a signed tag.
 
-[Unreleased]: https://github.com/zacesshq/games/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/zacesshq/games/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/zacesshq/games/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/zacesshq/games/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/zacesshq/games/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/zacesshq/games/compare/v0.1.0...v0.2.0

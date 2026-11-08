@@ -1,6 +1,6 @@
 [package]
 name = "zacess-games"
-version = "0.4.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Fourteen original games for the terminal in the Zacess high contrast themes"
@@ -20,7 +20,7 @@ path = "src/main.rs"
 [dependencies]
 # theme loading, palette roles with contrast floors, the flash meter, motion settings, frames and
 # SVG stills all come from Scenes, so the games look and behave like the scenes do
-zacess-scenes = "0.6"
+zacess-scenes = "1.0"
 crossterm = "0.29"
 # lua 5.4 built into the binary for the level files, the same build Scenes uses
 mlua = { version = "0.11.6", default-features = false, features = ["lua54", "vendored"] }

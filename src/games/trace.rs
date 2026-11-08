@@ -6,6 +6,7 @@
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
 use crate::levels::{self, Level};
+use crate::pixels_ui::{Field, Ink};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
@@ -19,12 +20,12 @@ pub const INFO: Info = Info {
     hints: "Arrows lay wire · Tab next lit point · U undo · R restart",
     help: &[
         "# Goal",
-        "Light every node on the board by running wire to it from the source (◆).",
+        "Light every node on the board by running wire to it from the source, the diamond.",
         "# Rules",
         "- The pen starts at the source. Each arrow lays one cell of wire from the pen.",
         "- Entering a node lights it. A lit node is a junction: Tab moves the pen to the next lit point so a new wire can branch from it.",
-        "- Wires never cross or share a cell, except on a via (┼), where one wire may run straight across another.",
-        "- Arrow nodes (△ ▽ ◁ ▷) only take wire arriving the way they point.",
+        "- Wires never cross or share a cell, except on a via (a small cross), where one wire may run straight across another.",
+        "- Arrow nodes are triangles and only take wire arriving the way they point.",
         "- Each level has a wire budget.",
         "# Scoring",
         "100 points for each circuit lit, plus 10 for each cell of wire left in the budget.",
@@ -341,28 +342,14 @@ impl Trace {
     }
 }
 
-/// The wire glyph for a set of sides.
-fn wire(bits: u8) -> char {
-    match bits {
-        b if b == N | S => '┃',
-        b if b == E | W => '━',
-        b if b == N | E => '┗',
-        b if b == N | W => '┛',
-        b if b == S | E => '┏',
-        b if b == S | W => '┓',
-        b if b == N | S | E => '┣',
-        b if b == N | S | W => '┫',
-        b if b == E | W | N => '┻',
-        b if b == E | W | S => '┳',
-        b if b == N | S | E | W => '╋',
-        b if b == N || b == S => '╹',
-        _ => '╸',
-    }
-}
-
 impl Game for Trace {
     fn info(&self) -> &'static Info {
         &INFO
+    }
+
+    fn zoomable(&self) -> bool {
+        // the board grows its own cells with the window, which keeps the copper sharp
+        false
     }
 
     fn animated(&self) -> bool {
@@ -422,106 +409,34 @@ impl Game for Trace {
         // a wall all round the map is the board's own frame, so it is not drawn twice
         let ring = i32::from(level.walled());
         let (w, h) = (level.width() as i32, level.height() as i32);
-        let board_w = (w - 2 * ring) * 3 + 2;
-        let board_h = h - 2 * ring + 2;
+        let (gw, gh) = (w - 2 * ring, h - 2 * ring);
         let panel_w = 24;
+        // the largest cells that fit, from sixteen pixels square down to three by two
+        let (cw, rh) = [
+            (16, 8),
+            (14, 7),
+            (12, 6),
+            (10, 5),
+            (8, 4),
+            (6, 3),
+            (4, 2),
+            (3, 1),
+        ]
+        .into_iter()
+        .find(|&(cw, rh)| gw * cw + 4 + panel_w <= area.w && (gh * rh + 2).max(14) <= area.h)
+        .unwrap_or((3, 1));
+        let board_w = gw * cw + 2;
+        let board_h = gh * rh + 2;
         let r = area.centre(board_w + 2 + panel_w, board_h.max(14));
         let board = Rect::new(r.x, r.y, board_w, board_h);
         c.titled(board, Line::Heavy, pal.green, &level.name, pal.bright);
-        for y in ring as usize..(h - ring) as usize {
-            for x in ring as usize..(w - ring) as usize {
-                let cx = board.x + 1 + (x as i32 - ring) * 3;
-                let cy = board.y + 1 + y as i32 - ring;
-                let ch = level.map[y][x];
-                let bits = self.links[y][x];
-                let lit = self.lit[y][x];
-                let pen = (x, y) == self.pen;
-                match ch {
-                    '#' => c.text(cx, cy, "▓▓▓", pal.muted),
-                    ' ' => {}
-                    'S' => {
-                        c.put(cx, cy, if bits & W != 0 { '━' } else { ' ' }, pal.green);
-                        c.put(cx + 1, cy, g('◆', 'S'), pal.yellow);
-                        c.put(cx + 2, cy, if bits & E != 0 { '━' } else { ' ' }, pal.green);
-                    }
-                    _ if Self::is_node(ch) => {
-                        let glyph = match (ch, lit) {
-                            ('N', false) => g('○', 'o'),
-                            ('N', true) => g('●', '@'),
-                            ('^', false) => g('△', '^'),
-                            ('^', true) => g('▲', '^'),
-                            ('v', false) => g('▽', 'v'),
-                            ('v', true) => g('▼', 'v'),
-                            ('<', false) => g('◁', '<'),
-                            ('<', true) => g('◀', '<'),
-                            ('>', false) => g('▷', '>'),
-                            _ => g('▶', '>'),
-                        };
-                        // a lit node is drawn filled and wired in; an unlit one hollow
-                        let colour = if lit { pal.green } else { pal.text };
-                        let left = if bits & W != 0 {
-                            '━'
-                        } else if lit {
-                            '['
-                        } else {
-                            ' '
-                        };
-                        let right = if bits & E != 0 {
-                            '━'
-                        } else if lit {
-                            ']'
-                        } else {
-                            ' '
-                        };
-                        c.put(cx, cy, left, pal.green);
-                        c.put(cx + 1, cy, glyph, colour);
-                        c.put(cx + 2, cy, right, pal.green);
-                    }
-                    '+' => {
-                        let centre = if bits == 0 {
-                            '┼'
-                        } else {
-                            wire(
-                                bits | if bits & (E | W) != 0 { E | W } else { 0 }
-                                    | if bits & (N | S) != 0 { N | S } else { 0 },
-                            )
-                        };
-                        c.put(
-                            cx,
-                            cy,
-                            if bits & W != 0 { '━' } else { '·' },
-                            if bits & W != 0 { pal.green } else { pal.muted },
-                        );
-                        c.put(
-                            cx + 1,
-                            cy,
-                            centre,
-                            if bits == 0 { pal.cyan } else { pal.green },
-                        );
-                        c.put(
-                            cx + 2,
-                            cy,
-                            if bits & E != 0 { '━' } else { '·' },
-                            if bits & E != 0 { pal.green } else { pal.muted },
-                        );
-                    }
-                    _ => {
-                        if bits == 0 {
-                            c.put(cx + 1, cy, '·', pal.muted);
-                        } else {
-                            c.put(cx, cy, if bits & W != 0 { '━' } else { ' ' }, pal.green);
-                            c.put(cx + 1, cy, wire(bits), pal.green);
-                            c.put(cx + 2, cy, if bits & E != 0 { '━' } else { ' ' }, pal.green);
-                        }
-                    }
-                }
-                if pen && self.pause <= 0.0 {
-                    // the pen: brackets around its cell in the brightest colour
-                    c.put(cx, cy, g('❰', '['), pal.bright);
-                    c.put(cx + 2, cy, g('❱', ']'), pal.bright);
-                }
-            }
-        }
+        self.paint_board(
+            c,
+            Rect::new(board.x + 1, board.y + 1, gw * cw, gh * rh),
+            ring,
+            cw,
+            rh,
+        );
         let p = Rect::new(board.x + board_w + 2, board.y, panel_w, board_h.max(14));
         c.titled(p, Line::Light, pal.muted, "Circuit", pal.bright);
         c.text(
@@ -649,6 +564,190 @@ pub fn solve(level: &Level) -> Option<u32> {
     }
     let mut seen = std::collections::HashSet::new();
     go(&mut t, &mut seen).then_some(t.used)
+}
+
+impl Trace {
+    /// The board as pixel art: a circuit board with a solder pad on each open cell, walls as
+    /// raised blocks, copper traces where wire has been laid, the source as a diamond, nodes as
+    /// rings that fill when lit (arrow nodes as triangles pointing the way they take wire), vias
+    /// as small crosses and the pen as corner marks round its cell.
+    fn paint_board(&self, c: &mut Canvas, inner: Rect, ring: i32, cw: i32, rh: i32) {
+        let pal = c.pal;
+        let ink = Ink::new(pal);
+        let level = self.level();
+        let ch = rh * 2;
+        let board = ink.tint(pal.green, 0.1);
+        let pad = ink.tint(pal.green, 0.36);
+        let mut layer = Field::new(pal, inner, board);
+        let copper = ink.solid(pal.green);
+        let (wall, wall_lit) = (ink.solid(pal.muted), ink.lit(pal.muted).0);
+        let wall_dark = ink.lit(pal.muted).1;
+        // traces a third of a cell thick, with a bright upper edge where there is room
+        let thick = (cw / 3).clamp(1, 4);
+        let shine = ink.lit(copper).0;
+        let (mx, my) = ((cw - thick) / 2, (ch - thick) / 2);
+        let (w, h) = (level.width() as i32, level.height() as i32);
+        for y in ring..h - ring {
+            for x in ring..w - ring {
+                let (px, py) = ((x - ring) * cw, (y - ring) * ch);
+                let tile = level.map[y as usize][x as usize];
+                let bits = self.links[y as usize][x as usize];
+                let lit = self.lit[y as usize][x as usize];
+                if tile == '#' {
+                    layer.px.fill_rect(px, py, cw, ch, wall);
+                    let open_above = y > 0 && level.map[y as usize - 1][x as usize] != '#';
+                    let open_below = y + 1 < h && level.map[y as usize + 1][x as usize] != '#';
+                    if open_above {
+                        layer.px.fill_rect(px, py, cw, 1, wall_lit);
+                    }
+                    if open_below {
+                        layer.px.fill_rect(px, py + ch - 1, cw, 1, wall_dark);
+                    }
+                    continue;
+                }
+                if tile == ' ' {
+                    continue;
+                }
+                // copper from the middle of the cell out to each side it joins
+                if bits != 0 {
+                    let mut run = |x: i32, y: i32, w: i32, h: i32| {
+                        layer.px.fill_rect(x, y, w, h, copper);
+                        if thick >= 2 {
+                            // light falls on the upper and left edges of the copper
+                            if w > h {
+                                layer.px.fill_rect(x, y, w, 1, shine);
+                            } else {
+                                layer.px.fill_rect(x, y, 1, h, shine);
+                            }
+                        }
+                    };
+                    if bits & N != 0 {
+                        run(px + mx, py, thick, my + thick);
+                    }
+                    if bits & S != 0 {
+                        run(px + mx, py + my, thick, ch - my);
+                    }
+                    if bits & W != 0 {
+                        run(px, py + my, mx + thick, thick);
+                    }
+                    if bits & E != 0 {
+                        run(px + mx, py + my, cw - mx, thick);
+                    }
+                }
+                let shape = |kind: char| -> Vec<(i32, i32)> { cell_shape(kind, cw, ch) };
+                match tile {
+                    'S' => {
+                        let (lit_y, dark_y) = ink.lit(pal.yellow);
+                        for (dx, dy) in shape('S') {
+                            let colour = if dy < ch / 2 {
+                                lit_y
+                            } else if dy > ch / 2 {
+                                dark_y
+                            } else {
+                                ink.solid(pal.yellow)
+                            };
+                            layer.px.set(px + dx, py + dy, colour);
+                        }
+                    }
+                    _ if Self::is_node(tile) => {
+                        let cells = shape(tile);
+                        let colour = ink.solid(pal.text);
+                        if lit {
+                            // a lit node glows: a bright core inside a copper rim, so it stands
+                            // out from the wire that feeds it
+                            let (rim, core) = (ink.solid(pal.green), ink.solid(pal.bright));
+                            for &(dx, dy) in &cells {
+                                let edge = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                                    .iter()
+                                    .any(|&(ex, ey)| !cells.contains(&(dx + ex, dy + ey)));
+                                let tone = if edge && cells.len() > 6 { rim } else { core };
+                                layer.px.set(px + dx, py + dy, tone);
+                            }
+                        } else {
+                            // an unlit one is hollow, its middle left as board
+                            for &(dx, dy) in &cells {
+                                let edge = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                                    .iter()
+                                    .any(|&(ex, ey)| !cells.contains(&(dx + ex, dy + ey)));
+                                if edge || cells.len() <= 6 {
+                                    layer.px.set(px + dx, py + dy, colour);
+                                } else {
+                                    layer.px.set(px + dx, py + dy, board);
+                                }
+                            }
+                        }
+                    }
+                    '+' if bits == 0 => {
+                        for (dx, dy) in shape('+') {
+                            layer.px.set(px + dx, py + dy, ink.solid(pal.cyan));
+                        }
+                    }
+                    '.' if bits == 0 => {
+                        // a solder pad: a square ring with a hole on the larger cells
+                        let side = (ch / 3).max(1);
+                        let (ox, oy) = (px + (cw - side) / 2, py + (ch - side) / 2);
+                        layer.px.fill_rect(ox, oy, side, side, pad);
+                        if side >= 3 {
+                            layer
+                                .px
+                                .fill_rect(ox + 1, oy + 1, side - 2, side - 2, board);
+                        }
+                    }
+                    _ => {}
+                }
+                if (x as usize, y as usize) == self.pen && self.pause <= 0.0 {
+                    let pen = ink.solid(pal.bright);
+                    let (x1, y1) = (px + cw - 1, py + ch - 1);
+                    let arm = (cw / 3).max(1);
+                    for (cx, cy, sx, sy) in [
+                        (px, py, 1, 1),
+                        (x1, py, -1, 1),
+                        (px, y1, 1, -1),
+                        (x1, y1, -1, -1),
+                    ] {
+                        for i in 0..arm {
+                            layer.px.set(cx + sx * i, cy, pen);
+                            layer.px.set(cx, cy + sy * i, pen);
+                        }
+                    }
+                }
+            }
+        }
+        layer.paint(c);
+    }
+}
+
+/// The pixels of a shape centred in a cell `cw` by `ch`: a diamond for the source, a disc for a
+/// node, a triangle pointing its way for an arrow node and a small cross for a via. The shape
+/// leaves a pixel clear round its edge on the larger cells so the pen marks have room.
+fn cell_shape(kind: char, cw: i32, ch: i32) -> Vec<(i32, i32)> {
+    let margin = if cw >= 6 && kind != 'S' {
+        (cw / 6) as f32
+    } else {
+        0.0
+    };
+    let (cx, cy) = ((cw - 1) as f32 / 2.0, (ch - 1) as f32 / 2.0);
+    let (rx, ry) = (cw as f32 / 2.0 - margin, ch as f32 / 2.0 - margin);
+    let mut out = Vec::new();
+    for dy in 0..ch {
+        for dx in 0..cw {
+            // the offset from the middle, scaled so the cell's half size is one
+            let (u, v) = ((dx as f32 - cx) / rx, (dy as f32 - cy) / ry);
+            let inside = match kind {
+                'S' => u.abs() + v.abs() <= 1.05,
+                'N' => u * u + v * v <= 1.0,
+                '^' => v >= -1.0 && u.abs() <= (v + 1.0) / 2.0 + 0.2,
+                'v' => v <= 1.0 && u.abs() <= (1.0 - v) / 2.0 + 0.2,
+                '<' => u >= -1.0 && v.abs() <= (u + 1.0) / 2.0 + 0.2,
+                '>' => u <= 1.0 && v.abs() <= (1.0 - u) / 2.0 + 0.2,
+                _ => (u.abs() < 0.3 && v.abs() <= 0.8) || (v.abs() < 0.3 && u.abs() <= 0.8),
+            };
+            if inside && u.abs() <= 1.0 && v.abs() <= 1.0 {
+                out.push((dx, dy));
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]

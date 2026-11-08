@@ -7,9 +7,12 @@
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink, SOLID, text_on};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
+use zacess_scenes::colour::Rgb;
+use zacess_scenes::pixels::Shades;
 
 pub const INFO: Info = Info {
     id: "slipstream",
@@ -22,8 +25,8 @@ pub const INFO: Info = Info {
         "# Goal",
         "Drive as far as you can on one tank of fuel at a time.",
         "# Rules",
-        "- Your car (▗▲▲▖) drives up a four-lane road past slower traffic.",
-        "- Fuel burns faster the faster you go. Close behind another car, in its slipstream (≈), it burns at well under half.",
+        "- Your car, the one with a light stripe down its middle, drives up a four-lane road past slower traffic.",
+        "- Fuel burns faster the faster you go. Close behind another car, in its slipstream (streaks of air run past your car), it burns at well under half.",
         "- The pit lane on the right (P) refills the tank, but holds the car to pit speed.",
         "- Running into a car is a bump: you slow down and the car moves on.",
         "# Scoring",
@@ -160,6 +163,11 @@ impl Game for Slipstream {
         &INFO
     }
 
+    fn zoomable(&self) -> bool {
+        // the road grows its own pixels with the window, which keeps the cars sharp
+        false
+    }
+
     fn natural_size(&self) -> Option<(i32, i32)> {
         Some((LANES as i32 * LANE_W + SHOULDER * 2 + 2, ROWS + 2))
     }
@@ -268,82 +276,17 @@ impl Game for Slipstream {
 
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
-        let road_w = LANES as i32 * LANE_W;
-        let box_w = road_w + SHOULDER * 2 + 2;
-        let box_h = ROWS + 2;
+        let geo = Geometry::fit(area);
+        let box_w = geo.road_w() + geo.shoulder * 2 + 2;
+        let rows = (ROWS * geo.row + 1) / 2;
+        let box_h = rows + 2;
         // the side panel is left out when the window is too narrow for it; the status bar
         // carries what matters
         let panel_w = if area.w >= box_w + 3 + 22 { 22 } else { 0 };
-        let r = area.centre(box_w + 3 + panel_w, box_h);
+        let r = area.centre(box_w + 3 + panel_w, box_h.max(15));
         let frame = Rect::new(r.x, r.y, box_w, box_h);
         c.titled(frame, Line::Heavy, pal.number, "Coast road", pal.bright);
-        let road_x = frame.x + 1 + SHOULDER;
-        let scroll = self.travelled;
-        for row in 0..ROWS {
-            let y = frame.y + 1 + row;
-            // the world row under this screen row, so scenery and markings move with the road
-            let world = (scroll.floor() as i64) - i64::from(row);
-            // the verges: a tree, a post or grass, picked from the world row
-            for side in 0..2 {
-                let x0 = if side == 0 {
-                    frame.x + 1
-                } else {
-                    road_x + road_w
-                };
-                let h = (world.wrapping_mul(2_654_435_761) >> 7).rem_euclid(9) + side;
-                let (glyph, colour) = match h {
-                    0 | 5 => (g('♣', '*'), pal.green),
-                    3 => ('╿', pal.string),
-                    _ => (' ', pal.muted),
-                };
-                let at = x0 + 1 + (h % 4) as i32;
-                c.put(at, y, glyph, colour);
-            }
-            c.put(road_x - 1, y, '▏', pal.muted);
-            c.put(road_x + road_w, y, '▕', pal.muted);
-            for lane in 1..LANES as i32 {
-                let x = road_x + lane * LANE_W - 1;
-                if lane as usize == PIT {
-                    c.put(x, y, '┃', pal.warning);
-                } else if world.rem_euclid(3) != 0 {
-                    c.put(x, y, '┆', pal.muted);
-                }
-            }
-        }
-        // the pit lane's sign and fuel marks
-        let pit_x = road_x + PIT as i32 * LANE_W + 1;
-        c.text(pit_x, frame.y + 1, " P ", pal.warning);
-        for row in (3..ROWS).step_by(4) {
-            c.put(pit_x + 1, frame.y + 1 + row, '+', pal.warning);
-        }
-        let lane_x = |lane: usize| road_x + lane as i32 * LANE_W;
-        let car_colours = [pal.cyan, pal.magenta, pal.yellow, pal.blue];
-        for car in &self.cars {
-            let y = frame.y + 1 + car.y.round() as i32;
-            let x = lane_x(car.lane);
-            let colour = car_colours[car.colour % car_colours.len()];
-            if (0..ROWS).contains(&(car.y.round() as i32)) {
-                c.text(x, y, "▐▀▀▌", colour);
-            }
-            if (0..ROWS).contains(&(car.y.round() as i32 + 1)) {
-                c.text(x, y + 1, "▐▄▄▌", colour);
-            }
-        }
-        let px = lane_x(self.lane);
-        let py = frame.y + 1 + CAR_ROW;
-        if self.drafting {
-            for gap in 1..=2 {
-                c.put(px + 1, py - gap, '≈', pal.muted);
-                c.put(px + 2, py - gap, '≈', pal.muted);
-            }
-        }
-        let body = if self.grace > 0.0 {
-            pal.warning
-        } else {
-            pal.number
-        };
-        c.text(px, py, &format!("▗{}{}▖", g('▲', '^'), g('▲', '^')), body);
-        c.text(px, py + 1, "▐██▌", body);
+        self.paint_road(c, Rect::new(frame.x + 1, frame.y + 1, box_w - 2, rows), geo);
 
         let p = Rect::new(frame.x + box_w + 3, frame.y, panel_w, box_h);
         if panel_w == 0 {
@@ -431,6 +374,268 @@ impl Game for Slipstream {
 
     fn demo(&self) -> Vec<(Key, f32)> {
         vec![(Key::Up, 0.5), (Key::Right, 1.5), (Key::Up, 1.0)]
+    }
+}
+
+/// How large the road is drawn: pixels to a row of the road, the width of a lane, the verges
+/// and the size of a car, all grown together with the window.
+#[derive(Clone, Copy, Debug)]
+struct Geometry {
+    row: i32,
+    lane: i32,
+    shoulder: i32,
+    car_w: i32,
+    car_h: i32,
+}
+
+impl Geometry {
+    fn fit(area: Rect) -> Self {
+        let row = ((area.h - 2) * 2 / ROWS).clamp(2, 6);
+        let car_h = 2 * row + 3;
+        let car_w = row + 3;
+        let lane = car_w + 2;
+        let room = area.w - 2 - 3 - 22 - LANES as i32 * lane;
+        let shoulder = (room / 2).clamp(SHOULDER, lane * 2);
+        Self {
+            row,
+            lane,
+            shoulder,
+            car_w,
+            car_h,
+        }
+    }
+
+    fn road_w(&self) -> i32 {
+        LANES as i32 * self.lane
+    }
+}
+
+impl Slipstream {
+    /// The road from above as pixel art: grass verges with trees, the asphalt with its lane
+    /// markings, the pit lane and the cars, all moving with the distance driven so the road
+    /// glides down the screen a pixel at a time.
+    fn paint_road(&self, c: &mut Canvas, inner: Rect, g: Geometry) {
+        let pal = c.pal;
+        let ink = Ink::new(pal);
+        let shades = Shades::new(pal.theme);
+        let grass = ink.tint(pal.green, 0.22);
+        let stripe = ink.tint(pal.green, 0.27);
+        let asphalt = ink.under(pal.muted, 0.2, &[pal.warning]);
+        let paint = ink.tint(pal.text, 0.75);
+        let dash = ink.tint(pal.text, 0.5);
+        let pit_ground = ink.under(pal.warning, 0.16, &[pal.warning]);
+        let mut layer = Field::new(pal, inner, grass);
+        let (lw, lh) = (layer.w(), layer.h());
+        let s = g.row;
+        // the screen pixel row of a world pixel, so every mark moves with the road
+        let scroll = self.travelled * s as f32;
+        let py_of = |world: f32| (scroll - world).round() as i32;
+        let base = scroll.floor() as i32;
+        let road = g.shoulder;
+        let road_w = g.road_w();
+        // mowing stripes across the verges
+        for y in 0..lh {
+            if (base - y).rem_euclid(4 * s) < 2 * s {
+                layer.px.fill_rect(0, y, road, 1, stripe);
+                layer.px.fill_rect(road + road_w, y, lw, 1, stripe);
+            }
+        }
+        // trees on the verges, round crowns seen from above, lit from the top left
+        let radius = s as f32 + 0.6;
+        let spacing = 5 * s + 2;
+        for side in 0..2_i64 {
+            for k in (base - lh - spacing).div_euclid(spacing)..=base.div_euclid(spacing) + 1 {
+                let h = (k as i64 * 2_654_435_761 + side * 40_503).rem_euclid(1 << 16) as i32;
+                if h % 5 == 0 {
+                    continue;
+                }
+                let span = (road - 2 * radius as i32 - 1).max(1);
+                let cx = if side == 0 {
+                    radius + ((h / 3) % span) as f32
+                } else {
+                    (road + road_w + 1) as f32 + radius + ((h / 3) % span) as f32
+                };
+                let cy = py_of((k * spacing + h % s.max(2)) as f32) as f32;
+                crown(&mut layer, &ink, pal.green, cx, cy, radius);
+            }
+        }
+        layer.px.fill_rect(road, 0, road_w, lh, asphalt);
+        let pit_x = road + PIT as i32 * g.lane;
+        layer.px.fill_rect(pit_x, 0, g.lane, lh, pit_ground);
+        // edge lines and the dashed lane lines
+        layer.px.fill_rect(road - 1, 0, 1, lh, paint);
+        layer.px.fill_rect(road + road_w, 0, 1, lh, paint);
+        for y in 0..lh {
+            if (base - y).rem_euclid(4 * s) < 2 * s {
+                for lane in 1..PIT as i32 {
+                    layer.px.set(road + lane * g.lane - 1, y, dash);
+                }
+            }
+        }
+        // the pit lane wall is a solid line in the warning colour with fuel marks on its floor
+        let wall = ink.solid(pal.warning);
+        layer.px.fill_rect(pit_x - 1, 0, 1, lh, wall);
+        let arm = if s >= 3 { 2 } else { 1 };
+        let step = 5 * s;
+        for k in (base - lh - step).div_euclid(step)..=base.div_euclid(step) + 1 {
+            let y = py_of((k * step) as f32);
+            let cx = pit_x + g.lane / 2;
+            if y > 2 * s + arm {
+                layer.px.fill_rect(cx - arm, y, 2 * arm + 1, 1, wall);
+                layer.px.fill_rect(cx, y - arm, 1, 2 * arm + 1, wall);
+            }
+        }
+        let lane_x = |lane: usize| road + lane as i32 * g.lane + (g.lane - 1 - g.car_w) / 2;
+        // a car's two rows of the road, with the body centred on them
+        let top_of = |row: f32| (row * s as f32).round() as i32 - (g.car_h - 2 * s) / 2;
+        let car_colours = [pal.cyan, pal.magenta, pal.yellow, pal.blue];
+        for car in &self.cars {
+            let colour = car_colours[car.colour % car_colours.len()];
+            car_sprite(
+                &mut layer,
+                &ink,
+                &shades,
+                lane_x(car.lane),
+                top_of(car.y),
+                g,
+                colour,
+                false,
+            );
+        }
+        let px = lane_x(self.lane);
+        let py = top_of(CAR_ROW as f32);
+        if self.drafting {
+            // air streaming past in the slipstream, drawn as soft streaks that run down
+            let air = ink.tint(pal.text, 0.45);
+            let phase = (scroll * 1.5).floor() as i32;
+            let ahead = self
+                .cars
+                .iter()
+                .filter(|c| c.lane == self.lane && top_of(c.y) < py)
+                .map(|c| top_of(c.y) + g.car_h)
+                .max()
+                .unwrap_or(py - 4 * s);
+            let len = s;
+            for k in 0..4 {
+                let y = py - 2 - (k * 2 * s + phase).rem_euclid(8 * s);
+                if y > ahead {
+                    let x = px + 1 + (k % 2) * (g.car_w - 3);
+                    layer.px.fill_rect(x, y - len + 1, 1, len, air);
+                }
+            }
+        }
+        let body = if self.grace > 0.0 {
+            pal.warning
+        } else {
+            pal.number
+        };
+        car_sprite(&mut layer, &ink, &shades, px, py, g, body, true);
+        layer.paint(c);
+        text_on(
+            c,
+            inner.x + pit_x + (g.lane - 3) / 2,
+            inner.y,
+            " P ",
+            pal.warning,
+        );
+    }
+}
+
+/// A tree crown from above: a disc in tints of green, lighter to the top left and deeper to the
+/// bottom right.
+fn crown(layer: &mut Field, ink: &Ink, green: Rgb, cx: f32, cy: f32, r: f32) {
+    let tones = [
+        ink.tint(green, 0.95),
+        ink.tint(green, 0.75),
+        ink.tint(green, 0.5),
+    ];
+    let reach = r.ceil() as i32;
+    for dy in -reach..=reach {
+        for dx in -reach..=reach {
+            let (fx, fy) = (dx as f32 + 0.5 - 0.5, dy as f32);
+            if fx * fx + fy * fy > r * r {
+                continue;
+            }
+            let light = -(fx + fy) / (2.0 * r);
+            let tone = if light > 0.3 {
+                tones[0]
+            } else if light > -0.3 {
+                tones[1]
+            } else {
+                tones[2]
+            };
+            layer
+                .px
+                .set(cx.round() as i32 + dx, cy.round() as i32 + dy, tone);
+        }
+    }
+}
+
+/// A car from above, `car_w` by `car_h` pixels with its top left at `x`, `y`: tyres standing
+/// out at both axles, a rounded nose and tail, a windscreen and a rear window, the body lit
+/// from the top left. The player's car carries a light stripe down its middle so it reads apart
+/// from the traffic without colour.
+#[allow(clippy::too_many_arguments)]
+fn car_sprite(
+    layer: &mut Field,
+    ink: &Ink,
+    shades: &Shades,
+    x: i32,
+    y: i32,
+    g: Geometry,
+    colour: Rgb,
+    player: bool,
+) {
+    let (w, h) = (g.car_w, g.car_h);
+    let body = ink.solid(colour);
+    let (lit, dark) = ink.lit(colour);
+    let glass = shades.held(body, shades.darkest(), 0.6, SOLID);
+    let tyre = ink.shade(ink.solid(colour), -1.0);
+    let tyre = shades.held(tyre, shades.darkest(), 0.8, SOLID);
+    let stripe = ink.shade(lit, 0.45);
+    let tyre_len = (h / 5).max(1);
+    let front = (h / 6).max(1);
+    let rear = h - front - tyre_len;
+    let screen = (h / 4).max(1);
+    let screen_len = (h / 5).max(1);
+    let back = (h * 7 / 10).min(h - 2);
+    for dy in 0..h {
+        for dx in 0..w {
+            let edge = dx == 0 || dx == w - 1;
+            let colour = if edge {
+                // the tyres sit outside the body at each axle
+                let axle = (front..front + tyre_len).contains(&dy)
+                    || (rear..rear + tyre_len).contains(&dy);
+                if !axle {
+                    continue;
+                }
+                tyre
+            } else {
+                let (inner_l, inner_r) = (dx == 1, dx == w - 2);
+                let corner = (dy == 0 || dy == h - 1) && (inner_l || inner_r);
+                if corner {
+                    continue;
+                }
+                let glass_row = (screen..screen + screen_len).contains(&dy) || dy == back;
+                let middle = !inner_l && !inner_r;
+                if glass_row && (middle || w <= 5) && !(w <= 5 && (inner_l || inner_r)) {
+                    glass
+                } else if player
+                    && middle
+                    && (dx - (w - 1) / 2).abs() <= (w - 5).max(0) / 2
+                    && w > 4
+                {
+                    stripe
+                } else if dy == 0 || inner_l {
+                    lit
+                } else if dy == h - 1 || inner_r {
+                    dark
+                } else {
+                    body
+                }
+            };
+            layer.px.set(x + dx, y + dy, colour);
+        }
     }
 }
 

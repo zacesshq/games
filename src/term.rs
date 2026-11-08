@@ -20,6 +20,7 @@ use crossterm::terminal::{
 use crossterm::{execute, queue};
 use zacess_scenes::colour::{ColourDepth, Rgb, nearest_256};
 use zacess_scenes::frame::Frame;
+use zacess_scenes::terminal::pixel_256;
 
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 
@@ -136,7 +137,10 @@ fn watch_signals(stop: Arc<AtomicBool>) -> io::Result<()> {
 pub struct Term {
     buffer: Vec<u8>,
     previous: Option<Frame>,
-    colour: Option<Option<Rgb>>,
+    /// The foreground last written and whether it was written as imagery.
+    colour: Option<(Option<Rgb>, bool)>,
+    /// The background last written, so a run of cells on one background sends it once.
+    back: Option<Rgb>,
     depth: ColourDepth,
     background: Rgb,
     floor: f64,
@@ -167,6 +171,7 @@ impl Term {
             buffer: Vec::with_capacity(64 * 1024),
             previous: None,
             colour: None,
+            back: None,
             depth,
             background,
             floor,
@@ -181,6 +186,19 @@ impl Term {
         match terminal::size() {
             Ok((w, h)) if w > 0 && h > 0 => (w as usize, h as usize),
             _ => (80, 24),
+        }
+    }
+
+    /// A colour of pixel imagery or of a cell's own background. It carries no meaning of its
+    /// own, so in 256 colours it takes the nearest entry without the text floor, as in Scenes.
+    fn pixel_colour(&self, c: Rgb) -> Color {
+        match self.depth {
+            ColourDepth::Ansi256 => Color::AnsiValue(pixel_256(c, self.background)),
+            ColourDepth::TrueColour => Color::Rgb {
+                r: c.r,
+                g: c.g,
+                b: c.b,
+            },
         }
     }
 
@@ -213,6 +231,7 @@ impl Term {
     pub fn reset(&mut self) -> io::Result<()> {
         self.previous = None;
         self.colour = None;
+        self.back = None;
         let bg = self.colour(self.background);
         execute!(io::stdout(), SetBackgroundColor(bg), Clear(ClearType::All))
     }
@@ -222,6 +241,7 @@ impl Term {
         self.buffer.clear();
         let bg = self.colour(self.background);
         queue!(self.buffer, BeginSynchronizedUpdate, SetBackgroundColor(bg))?;
+        self.back = Some(self.background);
         let mut cursor_at: Option<(usize, usize)> = None;
         for y in 0..frame.height() {
             for x in 0..frame.width() {
@@ -242,13 +262,26 @@ impl Term {
                 if cursor_at != Some((x, y)) {
                     queue!(self.buffer, cursor::MoveTo(x as u16, y as u16))?;
                 }
-                if self.colour != Some(cell.colour) {
+                // a pixel cell or a tile under text paints its own background
+                let back = cell.bg.unwrap_or(self.background);
+                if self.back != Some(back) {
+                    let b = if back == self.background {
+                        self.colour(back)
+                    } else {
+                        self.pixel_colour(back)
+                    };
+                    queue!(self.buffer, SetBackgroundColor(b))?;
+                    self.back = Some(back);
+                }
+                let ink = (cell.colour, cell.is_pixel());
+                if self.colour != Some(ink) {
                     let fg = match cell.colour {
+                        Some(c) if cell.is_pixel() => self.pixel_colour(c),
                         Some(c) => self.colour(c),
                         None => Color::Reset,
                     };
                     queue!(self.buffer, SetForegroundColor(fg))?;
-                    self.colour = Some(cell.colour);
+                    self.colour = Some(ink);
                 }
                 queue!(self.buffer, Print(cell.ch))?;
                 // ambiguous width glyphs can take two columns in some terminals, so only ASCII

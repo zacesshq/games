@@ -2,11 +2,23 @@
 <title>Learn to Code in Zacess Light, part way through a game</title>
 <rect x="0.5" y="0.5" width="866.99994" height="567" rx="10" fill="#ffffff" stroke="#424242"/>
 <line x1="0.5" y1="30" x2="867.49994" y2="30" stroke="#424242"/>
-<circle cx="18" cy="15" r="5" fill="#ca010e"/>
-<circle cx="34" cy="15" r="5" fill="#885a00"/>
-<circle cx="50" cy="15" r="5" fill="#01751c"/>
+<circle cx="18" cy="15" r="5" fill="#b40000"/>
+<circle cx="34" cy="15" r="5" fill="#7c4f00"/>
+<circle cx="50" cy="15" r="5" fill="#006606"/>
 <text x="433.99997" y="19.5" fill="#111111" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13" text-anchor="middle">zacess-games learn-to-code</text>
+<g shape-rendering="crispEdges">
+<rect x="123.2" y="180" width="16.8" height="17" fill="#fffffe"/>
+<rect x="140" y="180" width="8.4" height="17" fill="#3b59a2"/>
+<rect x="148.4" y="180" width="596.4" height="17" fill="#fefeff"/>
+<rect x="257.6" y="248" width="487.2" height="8.5" fill="#949494"/>
+<rect x="131.6" y="248" width="126" height="8.5" fill="#fefffe"/>
+<rect x="123.2" y="248" width="8.4" height="34" fill="#949494"/>
+<rect x="131.6" y="256.5" width="604.8" height="25.5" fill="#fefffe"/>
+<rect x="736.4" y="256.5" width="8.4" height="25.5" fill="#949494"/>
+<rect x="123.2" y="282" width="621.6" height="8.5" fill="#949494"/>
+<rect x="123.2" y="290.5" width="621.6" height="8.5" fill="#ffffff"/>
 <rect x="249.2" y="180" width="1.05" height="17" fill="#111111"/>
+</g>
 <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" xml:space="preserve">
 <text x="14" y="57" fill="#424242" textLength="16.8" lengthAdjust="spacingAndGlyphs">╭─</text>
 <text x="39.2" y="57" fill="#030075" textLength="126" lengthAdjust="spacingAndGlyphs">λ Learn to Code</text>
@@ -56,7 +68,7 @@
 <text x="114.8" y="210" fill="#424242" textLength="638.4" lengthAdjust="spacingAndGlyphs">└──────────────────────────────────────────────────────────────────────────┘</text>
 <text x="845.6" y="210" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
-<text x="131.6" y="227" fill="#583600" textLength="327.6" lengthAdjust="spacingAndGlyphs">✗ Blank 1: Text needs quotes around it.</text>
+<text x="131.6" y="227" fill="#843800" textLength="327.6" lengthAdjust="spacingAndGlyphs">✗ Blank 1: Text needs quotes around it.</text>
 <text x="845.6" y="227" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="14" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>
 <text x="845.6" y="244" fill="#424242" textLength="8.4" lengthAdjust="spacingAndGlyphs">│</text>

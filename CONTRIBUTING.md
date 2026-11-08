@@ -90,7 +90,7 @@ A game is ready to merge when it has all of the following:
 3. **A how-to-play page** behind `?`, written in plain words: the goal, the rules, the scoring, how
    the game is won or lost, a tip and the keys. The same text goes into its section of [docs/how-to-play.md](docs/how-to-play.md).
 4. **Tests** that hold what [ACCESSIBILITY.md](ACCESSIBILITY.md) requires: every colour keeps the
-   theme's floor in all eight themes, nothing flashes, reduced motion slows or stills the game and
+   theme's floor in all ten themes, nothing flashes, reduced motion slows or stills the game and
    the game can be paused at any moment. A game that runs on a timer also needs a test that a
    paused game never loses time.
 5. **A recording** in `scripts/recordings.txt`, which a test requires of every game.

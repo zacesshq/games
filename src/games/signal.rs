@@ -1,14 +1,16 @@
 //! Signal: a calm rhythm game. Notes drift along three lanes towards a line on the left, timed to
 //! a slow melody. Press a note's lane as it reaches the line and its tone sounds. Nothing flashes:
-//! a caught note leaves a ring that shrinks over half a second. A missed note simply passes.
+//! a caught note leaves a soft glow that shrinks over half a second. A missed note simply passes.
 //! There is no penalty for a press with no note, so a careful player is never punished.
 
 use zacess_scenes::rng::Rng;
 
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
+use crate::pixels_ui::{Field, Ink, text_on};
 use crate::sound::Sfx;
 use crate::term::Key;
 use crate::ui::{Canvas, Hue, Line, Rect, Status, g};
+use zacess_scenes::colour::Rgb;
 
 pub const INFO: Info = Info {
     id: "signal",
@@ -21,8 +23,8 @@ pub const INFO: Info = Info {
         "# Goal",
         "Catch every note of a calm song as it reaches the line.",
         "# Rules",
-        "- Notes drift left along three lanes: high (▲), middle (●) and low (▼).",
-        "- Press a note's lane key as it crosses the line on the left. A caught note plays its tone and leaves a ring.",
+        "- Notes drift left along three lanes: high notes point up, middle notes are round and low notes point down.",
+        "- Press a note's lane key as it crosses the outline of its shape on the left. A caught note plays its tone, fills the outline and leaves a soft glow.",
         "- A press with no note near costs nothing. A note that passes the line is missed.",
         "# Scoring",
         "300 points for a note in time, 100 for a close one, plus 10 for each note of the current run, up to 200.",
@@ -194,6 +196,11 @@ impl Game for Signal {
         &INFO
     }
 
+    fn zoomable(&self) -> bool {
+        // the stage grows its own lanes with the window, which keeps the notes sharp
+        false
+    }
+
     fn key(&mut self, key: Key, fx: &mut Fx) {
         match key {
             Key::Up | Key::Char('1' | 'k' | 'K') => self.press(0, fx),
@@ -234,32 +241,100 @@ impl Game for Signal {
 
     fn draw(&self, c: &mut Canvas, area: Rect) {
         let pal = c.pal;
-        let w = area.w.min(70);
-        let lanes_h = 11;
+        let ink = Ink::new(pal);
+        // the stage takes the window's width and as many rows as it can spare, so the lanes
+        // and their notes grow with it; four rows stay for the result and the song
+        let w = if area.w >= 90 {
+            area.w - 4
+        } else {
+            area.w.min(70)
+        };
+        let lanes_h = (area.h - 4).clamp(11, 30);
         let r = area.centre(w, lanes_h + 4);
         let stage = Rect::new(r.x, r.y, w, lanes_h);
         c.titled(stage, Line::Heavy, pal.blue, "Stage", pal.bright);
-        let line_x = stage.x + 9;
-        let right = stage.x + stage.w - 2;
-        let lane_info = [
-            (g('▲', '^'), pal.cyan, "high", "↑ 1"),
-            (g('●', 'o'), pal.green, "mid", "→ 2"),
-            (g('▼', 'v'), pal.magenta, "low", "↓ 3"),
-        ];
-        for (i, (glyph, colour, name, keys)) in lane_info.iter().enumerate() {
-            let y = stage.y + 2 + i as i32 * 3;
-            c.text(stage.x + 2, y, keys, pal.muted);
-            c.put(stage.x + 6, y, *glyph, *colour);
-            // a dotted track for each lane
-            for x in (line_x + 1..=right).step_by(2) {
-                c.put(x, y, '·', pal.muted);
-            }
-            let _ = name;
+        let colours = [pal.cyan, pal.green, pal.magenta];
+        let keys = ["↑ 1", "→ 2", "↓ 3"];
+        let text = [pal.muted, pal.text, pal.bright];
+        // the stage floor, faintly blue, with a band for each lane that the key labels sit on
+        let floor = ink.under(pal.blue, 0.05, &text);
+        let mut layer = Field::new(
+            pal,
+            Rect::new(stage.x + 1, stage.y + 1, stage.w - 2, stage.h - 2),
+            floor,
+        );
+        let (lw, lh) = (layer.w(), layer.h());
+        let pitch = lh / 3;
+        let top = (lh - 3 * pitch) / 2;
+        let centre = |lane: usize| top + pitch / 2 + lane as i32 * pitch;
+        // the note's half height in pixels, a little under half a lane
+        let size = ((pitch - 4) / 2).max(2);
+        for (lane, &colour) in colours.iter().enumerate() {
+            let band = ink.under(colour, 0.16, &text);
+            let rim = ink.tint(colour, 0.32);
+            let y0 = top + lane as i32 * pitch;
+            layer.px.fill_rect(0, y0 + 1, lw, pitch - 2, band);
+            layer.px.fill_rect(0, y0, lw, 1, rim);
+            layer.px.fill_rect(0, y0 + pitch - 1, lw, 1, rim);
         }
-        for y in stage.y + 1..stage.y + stage.h - 1 {
-            c.put(line_x, y, '┃', pal.bright);
-        }
+        let line_x = 6 + size * 2;
+        let right = lw - size - 3;
         let span = (right - line_x) as f32;
+        // beats drift towards the line in the gaps between the lanes, so the tempo can be seen
+        let tick = ink.tint(pal.blue, 0.45);
+        let first = (self.time / self.beat).floor() as i32;
+        for k in first..first + (TRAVEL / self.beat) as i32 + 2 {
+            let ahead = k as f32 * self.beat - self.time;
+            let x = line_x + (ahead / TRAVEL * span).round() as i32;
+            if x > line_x + size && x < right {
+                for gap in 1..3 {
+                    let y = top + gap * pitch;
+                    layer.px.fill_rect(x, y - 1, 2, 2, tick);
+                }
+            }
+        }
+        for (lane, &colour) in colours.iter().enumerate() {
+            let band = ink.under(colour, 0.28, &text);
+            layer.px.fill_rect(
+                line_x - size * 2 + 1,
+                top + lane as i32 * pitch + 1,
+                size * 4 - 1,
+                pitch - 2,
+                band,
+            );
+        }
+        for (lane, &colour) in colours.iter().enumerate() {
+            let caught = self
+                .rings
+                .iter()
+                .filter(|r| r.0 == lane)
+                .map(|r| r.1)
+                .fold(0.0, f32::max);
+            let cy = centre(lane);
+            if caught > 0.0 {
+                // a caught note leaves a soft glow that shrinks in three still steps, well under
+                // three changes a second. It also fills the outline it landed in
+                let grow = if caught > 0.33 {
+                    1.0
+                } else if caught > 0.16 {
+                    0.8
+                } else {
+                    0.6
+                };
+                let (rx, ry) = (size as f32 * 3.4 * grow, (pitch as f32 / 2.0 - 1.5) * grow);
+                glow(
+                    &mut layer,
+                    line_x as f32,
+                    cy as f32,
+                    rx,
+                    ry,
+                    ink.under(colour, 0.5, &text),
+                );
+                note(&mut layer, &ink, lane, line_x, cy, size, colour);
+            } else {
+                outline(&mut layer, lane, line_x, cy, size, ink.solid(colour));
+            }
+        }
         for n in &self.notes {
             if n.result.is_some() {
                 continue;
@@ -269,26 +344,33 @@ impl Game for Signal {
                 continue;
             }
             let x = line_x + (ahead / TRAVEL * span).round() as i32;
-            let y = stage.y + 2 + n.lane as i32 * 3;
-            let (glyph, colour, _, _) = lane_info[n.lane];
-            c.put(x, y, glyph, colour);
-            if x < right {
-                c.put(x + 1, y, '╴', colour);
+            let cy = centre(n.lane);
+            // a soft trail behind each note, the way it came
+            let steps = [0.5, 0.42, 0.34, 0.26, 0.2, 0.14];
+            let thick = (size / 3).max(1);
+            for (i, t) in steps.iter().enumerate() {
+                let tx = x + size + 1 + i as i32 * (size / 2).max(1);
+                if tx < lw {
+                    layer.px.fill_rect(
+                        tx,
+                        cy - thick / 2,
+                        (size / 2).max(1),
+                        thick,
+                        ink.tint(colours[n.lane], *t),
+                    );
+                }
             }
+            note(&mut layer, &ink, n.lane, x, cy, size, colours[n.lane]);
         }
-        for &(lane, left) in &self.rings {
-            let y = stage.y + 2 + lane as i32 * 3;
-            let (_, colour, _, _) = lane_info[lane];
-            // a ring that shrinks in three still steps, well under three changes a second each
-            let ring = if left > 0.33 {
-                g('◯', 'O')
-            } else if left > 0.16 {
-                g('○', 'o')
-            } else {
-                '·'
-            };
-            c.put(line_x - 1, y, ring, colour);
-            c.put(line_x + 1, y, ring, colour);
+        layer.paint(c);
+        for (lane, key) in keys.iter().enumerate() {
+            text_on(
+                c,
+                stage.x + 2,
+                stage.y + 1 + centre(lane) / 2,
+                key,
+                pal.text,
+            );
         }
         // the result line and progress under the stage
         let below = stage.y + stage.h;
@@ -360,6 +442,73 @@ impl Game for Signal {
             last.1 = 0.1;
         }
         demo
+    }
+}
+
+/// The pixels of a lane's note around its middle, `size` pixels from the middle to the top:
+/// high points up, low points down and the middle is round, so the lanes differ by shape as
+/// well as colour.
+fn shape(lane: usize, size: i32) -> Vec<(i32, i32)> {
+    let r = size as f32 + 0.5;
+    let half_w = r * 1.25;
+    let mut out = Vec::new();
+    for dy in -size..=size {
+        for dx in -(half_w.ceil() as i32)..=half_w.ceil() as i32 {
+            let (u, v) = (dx as f32 / half_w, dy as f32 / r);
+            let inside = match lane {
+                0 => v.abs() <= 1.0 && u.abs() <= (v + 1.0) / 2.0 + 0.08,
+                1 => u * u + v * v <= 1.0,
+                _ => v.abs() <= 1.0 && u.abs() <= (1.0 - v) / 2.0 + 0.08,
+            };
+            if inside {
+                out.push((dx, dy));
+            }
+        }
+    }
+    out
+}
+
+/// A note centred on `x`, `cy`, lit along its upper left edge and shaded along its lower
+/// right, so it reads as a solid bead with the light from the top left.
+fn note(layer: &mut Field, ink: &Ink, lane: usize, x: i32, cy: i32, size: i32, colour: Rgb) {
+    let (lit, dark) = ink.lit(colour);
+    let body = ink.solid(colour);
+    let cells = shape(lane, size);
+    let has = |dx: i32, dy: i32| cells.contains(&(dx, dy));
+    for &(dx, dy) in &cells {
+        let tone = if !has(dx, dy - 1) || !has(dx - 1, dy) {
+            lit
+        } else if !has(dx, dy + 1) || !has(dx + 1, dy) {
+            dark
+        } else {
+            body
+        };
+        layer.px.set(x + dx, cy + dy, tone);
+    }
+}
+
+/// The outline of a lane's note on the line: the shape to aim each note at.
+fn outline(layer: &mut Field, lane: usize, x: i32, cy: i32, size: i32, colour: Rgb) {
+    let cells = shape(lane, size);
+    for &(dx, dy) in &cells {
+        let edge = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            .iter()
+            .any(|&(ex, ey)| !cells.contains(&(dx + ex, dy + ey)));
+        if edge {
+            layer.px.set(x + dx, cy + dy, colour);
+        }
+    }
+}
+
+/// A filled ellipse of ground colour, for the glow a caught note leaves.
+fn glow(layer: &mut Field, cx: f32, cy: f32, rx: f32, ry: f32, colour: Rgb) {
+    for y in (cy - ry).floor() as i32..=(cy + ry).ceil() as i32 {
+        for x in (cx - rx).floor() as i32..=(cx + rx).ceil() as i32 {
+            let (dx, dy) = ((x as f32 - cx) / rx, (y as f32 - cy) / ry);
+            if dx * dx + dy * dy <= 1.0 {
+                layer.px.set(x, y, colour);
+            }
+        }
     }
 }
 
