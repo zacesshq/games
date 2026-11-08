@@ -122,6 +122,8 @@ pub struct Heatsink {
     pub target: Option<usize>,
     pub heat: f32,
     pub calm: bool,
+    /// Whether the hot warning has sounded since the chip last cooled below the mark.
+    hot: bool,
     rng: Rng,
     spawn_in: f32,
     elapsed: f32,
@@ -136,6 +138,9 @@ pub struct Heatsink {
 
 const AMBIENT: f32 = 25.0;
 const LIMIT: f32 = 100.0;
+/// The share of the way from the room's heat to the limit where the chip shows the warning
+/// colour and the warning tone sounds.
+const HOT: f32 = 0.7;
 const LANE: f32 = 48.0;
 
 fn same(a: char, b: char) -> bool {
@@ -149,6 +154,7 @@ impl Heatsink {
             target: None,
             heat: AMBIENT,
             calm: false,
+            hot: false,
             rng: Rng::new(setup.seed),
             spawn_in: 0.5,
             elapsed: 0.0,
@@ -312,6 +318,14 @@ impl Game for Heatsink {
                 i += 1;
             }
         }
+        // the chip turns to the warning colour past HOT of the way to the limit; the tone sounds
+        // once as it crosses, after the word's own tone, so the warning is the line left showing
+        let hot = !self.calm && (self.heat - AMBIENT) / (LIMIT - AMBIENT) > HOT;
+        if hot && !self.hot && self.heat < LIMIT {
+            fx.sound(Sfx::Warn);
+            fx.say(format!("The chip is running hot at {:.0}°C", self.heat));
+        }
+        self.hot = hot;
         if self.heat >= LIMIT && !self.calm {
             self.ended = Some(format!("The chip overheated after {} words.", self.cleared));
             return;
@@ -343,7 +357,7 @@ impl Game for Heatsink {
         let top = frame.y + 2;
         let last = top + (PIPES as i32 - 1) * sp;
         let hot = (self.heat - AMBIENT) / (LIMIT - AMBIENT);
-        let chip_colour = if hot > 0.7 {
+        let chip_colour = if hot > HOT {
             pal.warning
         } else if hot > 0.4 {
             pal.yellow
@@ -527,6 +541,40 @@ mod tests {
             day: 0,
             practice: false,
         })
+    }
+
+    #[test]
+    fn the_hot_warning_sounds_once_as_the_chip_turns() {
+        let mut h = game();
+        h.spawn_in = 100.0;
+        h.heat = AMBIENT + (LIMIT - AMBIENT) * HOT - 1.0;
+        h.drops = vec![Drop {
+            text: "ohm".chars().collect(),
+            pipe: 0,
+            x: 0.0,
+            typed: 0,
+        }];
+        let mut fx = Fx::default();
+        h.tick(0.01, &mut fx);
+        assert!(fx.sounds.contains(&Sfx::Warn));
+        assert!(
+            fx.toast
+                .as_deref()
+                .unwrap()
+                .starts_with("The chip is running hot")
+        );
+        // staying hot does not sound it again
+        fx = Fx::default();
+        h.tick(0.01, &mut fx);
+        assert!(!fx.sounds.contains(&Sfx::Warn));
+        // calm mode never warns
+        let mut calm = game();
+        calm.calm = true;
+        calm.spawn_in = 100.0;
+        calm.heat = LIMIT - 1.0;
+        let mut fx = Fx::default();
+        calm.tick(0.01, &mut fx);
+        assert!(!fx.sounds.contains(&Sfx::Warn));
     }
 
     #[test]

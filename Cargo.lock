@@ -501,7 +501,7 @@ dependencies = [
 
 [[package]]
 name = "zacess-games"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "crossterm",
  "mlua",
@@ -511,9 +511,9 @@ dependencies = [
 
 [[package]]
 name = "zacess-scenes"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a1fdf0f93c65fe778454301cb8e8d0f6a9524a883df9015cf73fd5796a82105"
+checksum = "0edf4f7fab27edd189376e75b3097affcdfae760ff438fc413406fda902d5f4f"
 dependencies = [
  "crossterm",
  "mlua",

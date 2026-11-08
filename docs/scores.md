@@ -30,6 +30,8 @@ number is ignored when the file is read, so a note can be left in it.
 code-language 0
 code-python 3
 learn-to-code 280
+setting-background-on 0
+setting-background-volume 15
 setting-effects-on 1
 setting-effects-volume 35
 setting-music-on 1
@@ -85,6 +87,8 @@ rows, light, moves and so on, as the How to play page of each game says).
 | `setting-effects-on` | `1` when the effects play and `0` when they are muted |
 | `setting-music-volume` | The music volume, 0 to 100 |
 | `setting-music-on` | `1` when the music plays and `0` when it is muted |
+| `setting-background-volume` | The background sound's volume, 0 to 100 |
+| `setting-background-on` | `1` when the background sound plays and `0` when it is off |
 
 A flag or an environment variable wins over a saved setting for that run and does not change the
 file; see [the controls sheet](controls.md#settings-and-records).

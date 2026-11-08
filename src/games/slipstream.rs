@@ -45,6 +45,8 @@ pub const INFO: Info = Info {
 /// Driving lanes plus the pit lane at the right.
 pub const LANES: usize = 5;
 pub const PIT: usize = LANES - 1;
+/// Below this much fuel the gauge shows the warning colour and the warning tone sounds.
+const LOW_FUEL: f32 = 25.0;
 const LANE_W: i32 = 5;
 const SHOULDER: i32 = 6;
 pub const ROWS: i32 = 15;
@@ -75,6 +77,8 @@ pub struct Slipstream {
     rng: Rng,
     grace: f32,
     drafting: bool,
+    /// Whether the fuel warning has sounded since the tank was last above a quarter.
+    fuel_low: bool,
     over: Option<String>,
     scale: f32,
     milestone: u32,
@@ -92,6 +96,7 @@ impl Slipstream {
             rng: Rng::new(setup.seed),
             grace: 0.0,
             drafting: false,
+            fuel_low: false,
             over: None,
             // reduced motion halves how fast the road scrolls; the rules stay the same
             scale: if setup.reduced_motion { 0.5 } else { 1.0 },
@@ -219,6 +224,13 @@ impl Game for Slipstream {
         } else {
             self.fuel = (self.fuel - self.burn() * dt).max(0.0);
         }
+        // the gauge turns to the warning colour below a quarter; the tone sounds once as it does
+        let low = self.fuel <= LOW_FUEL;
+        if low && !self.fuel_low && self.lane != PIT {
+            fx.sound(Sfx::Warn);
+            fx.say("Fuel low: the pit lane is on the right");
+        }
+        self.fuel_low = low;
         if self.fuel <= 0.0 {
             // an empty tank coasts to a stop
             self.speed = (self.speed - 2.0 * dt).max(0.0);
@@ -309,7 +321,7 @@ impl Game for Slipstream {
             pal.text,
         );
         c.text(p.x + 2, p.y + 5, "Fuel", pal.muted);
-        let fuel_colour = if self.fuel > 25.0 {
+        let fuel_colour = if self.fuel > LOW_FUEL {
             pal.green
         } else {
             pal.warning
@@ -702,6 +714,27 @@ mod tests {
         }
         assert_eq!(s.bumps, BUMPS);
         assert!(matches!(s.outcome(), Some(Outcome::Lost(_))));
+    }
+
+    #[test]
+    fn the_fuel_warning_sounds_once_as_the_gauge_turns() {
+        let mut s = game();
+        s.cars.clear();
+        s.fuel = LOW_FUEL + 0.5;
+        s.speed = 8.0;
+        let mut fx = Fx::default();
+        let mut warned = 0;
+        for _ in 0..40 {
+            s.tick(0.1, &mut fx);
+            warned += fx.sounds.iter().filter(|&&x| x == Sfx::Warn).count();
+            fx.sounds.clear();
+        }
+        assert!(s.fuel < LOW_FUEL);
+        assert_eq!(warned, 1);
+        assert_eq!(
+            fx.toast.as_deref(),
+            Some("Fuel low: the pit lane is on the right")
+        );
     }
 
     #[test]

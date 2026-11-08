@@ -8,6 +8,7 @@ use zacess_scenes::flash::{Meter, Verdict};
 use zacess_scenes::frame::Frame;
 use zacess_scenes::theme::ThemeData;
 
+use crate::background;
 use crate::game::{Fx, Game, Info, Input, Outcome, Setup};
 use crate::games;
 use crate::music;
@@ -113,6 +114,10 @@ pub fn how_to_play(info: &Info) -> Vec<String> {
         }
     }
     lines.push("- + and - set the effects volume. ] and [ set the music volume.".into());
+    lines.push(
+        "- } and { set the background sound under the game, which is off until } turns it on."
+            .into(),
+    );
     lines.push("- 0 mutes everything and brings it back.".into());
     lines.push(match info.input {
         Input::Keys => "- Q or Esc leaves. Ctrl+C leaves at once.".into(),
@@ -157,6 +162,8 @@ pub fn sound_key(key: Key, sound: &mut Sound, scores: &mut Scores) -> Option<Str
         Key::Char('-' | '_') => sound.change(false),
         Key::Char(']') => sound.change_music(true),
         Key::Char('[') => sound.change_music(false),
+        Key::Char('}') => sound.change_background(true),
+        Key::Char('{') => sound.change_background(false),
         Key::Char('0') => sound.toggle_all(),
         _ => return None,
     }
@@ -365,7 +372,7 @@ impl Session {
             let lines = vec![
                 format!("{} is paused.", info.name),
                 format!("Sound now: {}", sound.status()),
-                "+ and - effects · [ and ] music · 0 mute all".into(),
+                "+ and - effects · [ and ] music · { and } background · 0 mute all".into(),
                 match info.input {
                     Input::Letters => "Esc leaves · any other key carries on".into(),
                     _ => "Q leaves · any other key carries on".into(),
@@ -555,6 +562,7 @@ pub struct Options {
 pub fn run(start: Option<&'static Info>, opts: Options) -> std::io::Result<()> {
     let result = run_inner(start, opts);
     music::stop();
+    background::stop();
     result
 }
 
@@ -609,6 +617,7 @@ fn run_inner(start: Option<&'static Info>, mut opts: Options) -> std::io::Result
             .filter(|s| s.music_wanted())
             .map(|s| s.game.info().id);
         music::keep(&opts.sound, playing);
+        background::keep(&opts.sound, playing);
         // a frame that would change a large area too often is held back, as in Scenes
         if meter.judge(&frame, opts.theme) == Verdict::Show {
             shown.clone_from(&frame);
@@ -922,6 +931,12 @@ mod tests {
         assert_eq!(sound.status(), "FX 45% · Music 10%");
         assert_eq!(scores.get(crate::sound::FX_KEY), Some(45));
         assert_eq!(scores.get(crate::sound::MUSIC_KEY), Some(10));
+        sound_key(Key::Char('}'), &mut sound, &mut scores);
+        assert_eq!(sound.status(), "FX 45% · Music 10% · Background 25%");
+        assert_eq!(scores.get(crate::sound::BACKGROUND_KEY), Some(25));
+        assert_eq!(scores.get(crate::sound::BACKGROUND_ON_KEY), Some(1));
+        sound_key(Key::Char('{'), &mut sound, &mut scores);
+        assert_eq!(scores.get(crate::sound::BACKGROUND_KEY), Some(15));
         sound_key(Key::Char('0'), &mut sound, &mut scores);
         assert_eq!(sound.status(), "FX muted · Music off");
         assert!(sound_key(Key::Char('a'), &mut sound, &mut scores).is_none());

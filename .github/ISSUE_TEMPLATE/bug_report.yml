@@ -101,7 +101,7 @@ body:
     attributes:
       label: Version and system
       description: The game's version, the operating system and the terminal version.
-      placeholder: 1.0.0, macOS 26, Ghostty 1.2
+      placeholder: 1.1.0, macOS 26, Ghostty 1.2
   - type: dropdown
     id: ai-use
     attributes:

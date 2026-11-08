@@ -43,18 +43,22 @@ pub enum Sfx {
     Win,
     /// A low falling pair for a refused move or a lost game. Never harsh.
     Low,
+    /// Two even pulses for something to act on soon: fuel running low, a chip running hot or a
+    /// dish on its last chance. Never an alarm.
+    Warn,
     /// One note at a pitch, for caught notes and gathered light.
     Note(i8),
 }
 
 impl Sfx {
     /// Every tone with a pitch of its own, for `zacess-games sounds`.
-    pub const SAMPLER: [Sfx; 6] = [
+    pub const SAMPLER: [Sfx; 7] = [
         Sfx::Tick,
         Sfx::Tap,
         Sfx::Good,
         Sfx::Win,
         Sfx::Low,
+        Sfx::Warn,
         Sfx::Note(0),
     ];
 
@@ -66,6 +70,9 @@ impl Sfx {
             Sfx::Good => vec![(3, 0.0, 0.16), (10, 0.11, 0.24)],
             Sfx::Win => vec![(3, 0.0, 0.2), (7, 0.15, 0.2), (12, 0.3, 0.45)],
             Sfx::Low => vec![(-2, 0.0, 0.18), (-7, 0.14, 0.28)],
+            // the same E5 twice, neither rising nor falling, so it reads as "look" rather than
+            // a win or a loss
+            Sfx::Warn => vec![(7, 0.0, 0.14), (7, 0.22, 0.2)],
             Sfx::Note(p) => vec![(p, 0.0, 0.4)],
         }
     }
@@ -91,6 +98,7 @@ impl Sfx {
             Sfx::Good => "good".into(),
             Sfx::Win => "win".into(),
             Sfx::Low => "low".into(),
+            Sfx::Warn => "warn".into(),
             Sfx::Note(p) => format!("note{p}"),
         }
     }
@@ -103,6 +111,7 @@ impl Sfx {
             Sfx::Good => "a clear, a merge, a lit node or an open door",
             Sfx::Win => "a level solved, a goal or a game won",
             Sfx::Low => "a refused move, a bump or a lost game",
+            Sfx::Warn => "fuel running low, a chip running hot or a dish on its last chance",
             Sfx::Note(_) => "a caught note or gathered light, at its own pitch",
         }
     }
@@ -229,6 +238,9 @@ pub struct Sound {
     /// Music on or off and its volume.
     pub music_enabled: bool,
     pub music_volume: u8,
+    /// The background sound under each game on or off and its volume.
+    pub background_enabled: bool,
+    pub background_volume: u8,
     player: Option<Player>,
     dir: PathBuf,
     /// A headless run: the settings show as they would live, but nothing is ever played.
@@ -241,12 +253,19 @@ pub struct Sound {
 pub const DEFAULT_MUSIC_VOLUME: u8 = 20;
 /// The variable that sets the music volume, 0 to 100.
 pub const MUSIC_VOLUME_ENV: &str = "ZACESS_MUSIC_VOLUME";
+/// The background sound's volume when nothing sets one: under the music, since it plays the
+/// whole time.
+pub const DEFAULT_BACKGROUND_VOLUME: u8 = 15;
+/// The variable that turns the background sound on or off, the same one Zacess Scenes reads.
+pub const BACKGROUND_ENV: &str = "ZACESS_AMBIENT";
 
 /// The keys the settings are remembered under in the records file.
 pub const FX_KEY: &str = "setting-effects-volume";
 pub const FX_ON_KEY: &str = "setting-effects-on";
 pub const MUSIC_KEY: &str = "setting-music-volume";
 pub const MUSIC_ON_KEY: &str = "setting-music-on";
+pub const BACKGROUND_KEY: &str = "setting-background-volume";
+pub const BACKGROUND_ON_KEY: &str = "setting-background-on";
 
 /// Where the sound settings come from, in order: the flags, the variables, the settings saved
 /// last time and the defaults.
@@ -256,6 +275,9 @@ pub struct Choice {
     pub volume: Option<u8>,
     pub no_music: bool,
     pub music_volume: Option<u8>,
+    /// `--background` or `--no-background`.
+    pub background: Option<bool>,
+    pub background_volume: Option<u8>,
 }
 
 impl Sound {
@@ -266,6 +288,13 @@ impl Sound {
         let env_music = var(MUSIC_VOLUME_ENV).and_then(|v| parse_volume(&v));
         let saved_u8 = |key: &str| saved.get(key).and_then(|v| u8::try_from(v.min(100)).ok());
         let saved_on = |key: &str| saved.get(key).is_none_or(|v| v != 0);
+        let env_background = match var(BACKGROUND_ENV).as_deref().map(str::trim) {
+            Some("1" | "true" | "yes" | "on") => Some(true),
+            Some(value) if env_turns_off(Some(value)) => Some(false),
+            _ => None,
+        };
+        // the background sound is off until asked for, so a saved setting needs saying on
+        let saved_background = saved.get(BACKGROUND_ON_KEY).map(|v| v != 0);
         Self {
             enabled: !choice.no_sound && !env_off && saved_on(FX_ON_KEY),
             volume: choice
@@ -279,6 +308,16 @@ impl Sound {
                 .or(env_music)
                 .or_else(|| saved_u8(MUSIC_KEY))
                 .unwrap_or(DEFAULT_MUSIC_VOLUME),
+            background_enabled: !env_off
+                && choice
+                    .background
+                    .or(env_background)
+                    .or(saved_background)
+                    .unwrap_or(false),
+            background_volume: choice
+                .background_volume
+                .or_else(|| saved_u8(BACKGROUND_KEY))
+                .unwrap_or(DEFAULT_BACKGROUND_VOLUME),
             player: find_player(),
             dir: cache_dir(),
             headless: false,
@@ -293,6 +332,8 @@ impl Sound {
             volume: DEFAULT_VOLUME,
             music_enabled: true,
             music_volume: DEFAULT_MUSIC_VOLUME,
+            background_enabled: false,
+            background_volume: DEFAULT_BACKGROUND_VOLUME,
             player: None,
             dir: cache_dir(),
             headless: true,
@@ -306,6 +347,8 @@ impl Sound {
         scores.set(FX_ON_KEY, u64::from(self.enabled));
         scores.set(MUSIC_KEY, u64::from(self.music_volume));
         scores.set(MUSIC_ON_KEY, u64::from(self.music_enabled));
+        scores.set(BACKGROUND_KEY, u64::from(self.background_volume));
+        scores.set(BACKGROUND_ON_KEY, u64::from(self.background_enabled));
     }
 
     fn step(v: u8, up: bool) -> u8 {
@@ -332,11 +375,43 @@ impl Sound {
         }
     }
 
-    /// Mutes everything. Brings both back when everything is already muted.
+    /// Background sound volume up or down by one step. Turning it up also turns it on and
+    /// down to 0 turns it off.
+    pub fn change_background(&mut self, up: bool) {
+        self.background_volume = Self::step(self.background_volume, up);
+        if up {
+            self.background_enabled = true;
+        } else if self.background_volume == 0 {
+            self.background_enabled = false;
+        }
+    }
+
+    /// Mutes everything. Brings effects and music back when everything is already muted; the
+    /// background sound stays off until asked for again, as it starts.
     pub fn toggle_all(&mut self) {
-        let any = self.enabled || self.music_enabled;
+        let any = self.enabled || self.music_enabled || self.background_enabled;
         self.enabled = !any;
         self.music_enabled = !any;
+        if any {
+            self.background_enabled = false;
+        }
+    }
+
+    /// Whether the background sound should play, apart from what the game is doing.
+    pub fn background_on(&self) -> bool {
+        !self.headless
+            && self.background_enabled
+            && self.background_volume > 0
+            && self.player.is_some()
+    }
+
+    /// The background sound setting, such as `15%` or `off`.
+    pub fn background_label(&self) -> String {
+        if !self.background_enabled || self.background_volume == 0 {
+            "off".into()
+        } else {
+            format!("{}%", self.background_volume)
+        }
     }
 
     pub fn music_on(&self) -> bool {
@@ -365,9 +440,14 @@ impl Sound {
         }
     }
 
-    /// Both settings for the status bar, such as `FX 35% · Music 20%`.
+    /// The settings for the status bar, such as `FX 35% · Music 20%`, with the background sound
+    /// added while it is on.
     pub fn status(&self) -> String {
         let mut s = format!("FX {} · Music {}", self.label(), self.music_label());
+        // named only while on, since it starts off and the status line is short on a menu
+        if self.background_enabled && self.background_volume > 0 {
+            s.push_str(&format!(" · Background {}", self.background_label()));
+        }
         if self.player.is_none() && !self.headless {
             s.push_str(" (no player)");
         }
@@ -462,6 +542,40 @@ mod tests {
                 sfx.name()
             );
         }
+    }
+
+    #[test]
+    fn the_background_sound_starts_off_and_its_keys_turn_it_on_and_off() {
+        let mut s = Sound::silent();
+        assert!(!s.background_enabled && !s.background_on());
+        s.change_background(true);
+        assert!(s.background_enabled);
+        assert_eq!(s.background_volume, DEFAULT_BACKGROUND_VOLUME + STEP);
+        assert_eq!(s.status(), "FX 35% · Music 20% · Background 25%");
+        // a headless run never plays it, whatever the setting
+        assert!(!s.background_on());
+        s.change_background(false);
+        s.change_background(false);
+        s.change_background(false);
+        assert_eq!(s.background_volume, 0);
+        assert!(!s.background_enabled);
+        assert_eq!(s.status(), "FX 35% · Music 20%");
+        // muting everything turns it off and bringing sound back leaves it off
+        s.change_background(true);
+        s.toggle_all();
+        assert!(!s.background_enabled && !s.enabled);
+        s.toggle_all();
+        assert!(s.enabled && s.music_enabled && !s.background_enabled);
+    }
+
+    #[test]
+    fn the_warn_tone_is_two_even_pulses_apart_from_low_and_good() {
+        let notes = Sfx::Warn.notes();
+        assert_eq!(notes.len(), 2);
+        assert_eq!(notes[0].0, notes[1].0);
+        assert!(notes[0].0 > Sfx::Low.notes()[0].0);
+        assert!(!Sfx::Warn.frequent());
+        assert!(Sfx::SAMPLER.contains(&Sfx::Warn));
     }
 
     #[test]

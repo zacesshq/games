@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-08
+
+### Added
+
+- A background sound under each game, beside the music, from the Zacess Scenes background sounds: a machine room hum under Stackline, Merge Gates, Trace, Rooms, Relay and Heatsink, a slow pad under Termle and Signal, birdsong under Drift, wind under Through Ball, distant traffic under Slipstream, a night bed under Array Guard and rain under Touch Typing and Learn to Code. It is off until turned on with `}`, `--background` or `ZACESS_AMBIENT=1`, starts at 15 out of 100 and `{` turns it down and off at 0. The level and whether it is on are remembered. It stops with the music while a game is paused or its page is open.
+- A warning tone: two even notes that sound once when something needs attention soon. Slipstream sounds it as the fuel drops below a quarter, Heatsink as the chip passes 70 percent of the way to its limit and Array Guard as a dish loses its last shield. Each comes with a written line and the warning colour on screen at the same moment. Calm mode in Heatsink never sounds it.
+- `zacess-games sounds` plays the warning tone with the other effects and six seconds of each game's background sound after its music.
+- The flags `--no-background` and `--background-volume`. The settings keys `setting-background-on` and `setting-background-volume` keep the choice.
+
+### Changed
+
+- Builds on Zacess Scenes 1.1.0, which brings the five new background sounds the games use.
+- The status bar names the background sound's level while it is on, such as `FX 35% · Music 20% · Background 25%`.
+- The how-to-play pages and the pause screen list the `{` and `}` keys.
+
 ## [1.0.0] - 2026-11-08
 
 ### Added
@@ -85,7 +100,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 - `docs/how-to-play.md` and `docs/controls.md` for every game and every key, flag, variable and setting, with 47 stills in `docs/images` that `scripts/snapshots.sh` makes again from the program.
 - CI: markdown linting, formatting, Clippy, the tests and a headless run of every game on Linux, macOS and Windows, a check that the stills are current, the release target builds, a check on the minimum Rust version (1.88) and a release workflow that attaches built binaries to the release a maintainer makes from a signed tag.
 
-[Unreleased]: https://github.com/zacesshq/games/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/zacesshq/games/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/zacesshq/games/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/zacesshq/games/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/zacesshq/games/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/zacesshq/games/compare/v0.2.0...v0.3.0

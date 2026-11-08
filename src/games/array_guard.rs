@@ -162,14 +162,23 @@ impl ArrayGuard {
         if (dish_x(i) + 1 - x.round() as i32).abs() > 3 {
             return;
         }
-        if self.shields[i] > 0 {
+        if self.shields[i] > 1 {
             self.shields[i] -= 1;
             fx.say(format!("Dish {} hit: shield {}", i + 1, self.shields[i]));
+            fx.sound(Sfx::Low);
+        } else if self.shields[i] == 1 {
+            // one more hit loses the dish, so this one asks for attention instead of a shrug
+            self.shields[i] = 0;
+            fx.say(format!(
+                "Dish {} has no shield left: the next hit loses it",
+                i + 1
+            ));
+            fx.sound(Sfx::Warn);
         } else {
             self.lost[i] = true;
             fx.say(format!("Dish {} lost", i + 1));
+            fx.sound(Sfx::Low);
         }
-        fx.sound(Sfx::Low);
     }
 }
 
@@ -787,6 +796,11 @@ mod tests {
         }
         assert!(a.lost[0]);
         assert_eq!(a.alive(), DISHES - 1);
+        // the hit that leaves a dish with no shield warns, once; the others are the low tone
+        let warns = fx.sounds.iter().filter(|&&x| x == Sfx::Warn).count();
+        let lows = fx.sounds.iter().filter(|&&x| x == Sfx::Low).count();
+        assert_eq!(warns, 1);
+        assert_eq!(lows, SHIELD as usize);
     }
 
     #[test]

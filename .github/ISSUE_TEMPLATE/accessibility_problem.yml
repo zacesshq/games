@@ -86,7 +86,7 @@ body:
     id: version
     attributes:
       label: Version and terminal (optional)
-      placeholder: 1.0.0, Windows Terminal 1.23
+      placeholder: 1.1.0, Windows Terminal 1.23
   - type: dropdown
     id: ai-use
     attributes:

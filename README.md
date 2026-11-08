@@ -31,8 +31,11 @@ contrast floors, flash limit and reduced motion.
   larger and sharper as the window grows, keeping its own grid and rules.
 - **No flashing.** Every frame passes through the Scenes flash meter. Reduced motion is honoured
   from a flag, an environment variable and the system setting.
-- **Sound effects and calm music**, synthesised by the game itself. Each has its own volume and
-  both can be muted. Every sound has a written twin on screen.
+- **Sound effects, calm music and a background sound**, synthesised by the game itself. Each has
+  its own volume and all three can be muted. The background sound suits the game, such as a machine
+  room under Heatsink or distant traffic under Slipstream. It is off until turned on. A soft
+  warning tone sounds when fuel runs low, a chip runs hot or a dish is on its last shield. Every
+  sound has a written twin on screen.
 - **A how-to-play page** behind `?` (`F1` in the typing games), so the rules are never more than
   one key away.
 - **Levels in Lua**, so a level can be read, changed and shared without building anything.
@@ -43,11 +46,12 @@ contrast floors, flash limit and reduced motion.
 zacess-games                  # the menu
 zacess-games trace            # one game by name; a short start such as "stack" is enough
 zacess-games list             # every game and its best score
-zacess-games sounds           # every effect, then each game's music
+zacess-games sounds           # every effect, then each game's music and background sound
+zacess-games --background     # with a background sound under each game
 ```
 
 In most games `Space` pauses, `?` shows how to play, `+` and `-` set the effects, `]` and `[` the
-music and `0` mutes. `Q` or `Esc` goes back to the menu and `Ctrl+C` always leaves.
+music, `}` and `{` the background sound and `0` mutes. `Q` or `Esc` goes back to the menu and `Ctrl+C` always leaves.
 
 ## The games
 
@@ -154,8 +158,8 @@ Each archive has a `.sha256` file beside it and holds the guides as well as the 
 sum, unpack the archive and put `zacess-games` (or `zacess-games.exe`) somewhere on your `PATH`.
 
 ```sh
-shasum -a 256 -c zacess-games-v1.0.0-aarch64-apple-darwin.tar.gz.sha256
-tar -xzf zacess-games-v1.0.0-aarch64-apple-darwin.tar.gz
+shasum -a 256 -c zacess-games-v1.1.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf zacess-games-v1.1.0-aarch64-apple-darwin.tar.gz
 ```
 
 ## Documentation

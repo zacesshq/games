@@ -110,9 +110,18 @@ the key lines are checked by the tests in `src/`.
   The second key line under every game and the menu lists the keys. Effects go up with `+` and down
   with `-`. Music goes up with `]` and down with `[`. `0` mutes everything. Changes are remembered
   for the next run.
+- **Background sound only when asked for.** A quiet loop that suits each game, from the Zacess
+  Scenes background sounds: a machine room hum, rain, birdsong, wind, distant traffic, a slow pad or
+  a night bed. It is off until `}`, `--background` or `ZACESS_AMBIENT=1` turns it on and starts at
+  15, under the music. The status bar names it only while it is on. It stops with the music while
+  a game is paused or its page is open.
 - **Loud enough to hear.** Effects are levelled to the same loudness Zacess Scenes uses, so a game
   at 35 is as loud as a scene at 35. No tone is shorter than 0.12 seconds. Frequent actions get a
   quieter tick with a short gap between ticks, so fast keys never stack into noise.
+- **A warning tone, never an alarm.** Two even notes, neither rising nor falling, sound once when
+  something needs attention soon: Slipstream's fuel drops below a quarter, Heatsink's chip passes
+  70 percent of the way to its limit or an Array Guard dish loses its last shield. Each comes with
+  a written line and with the gauge, chip or dish turning to the warning colour at the same moment.
 - **Calm music.** Each game has a soft loop in its own key and tempo, levelled well below the
   effects. It stops while a game is paused or its page is open and stops on every way out, so no
   player is left running.
@@ -121,7 +130,7 @@ the key lines are checked by the tests in `src/`.
 - **Sound is never the only signal.** Every effect has a written twin above the key lines, such as
   "Node lit, 2 to go". Music never carries meaning. Every game plays the same muted.
 - **Test it outside a game.** `zacess-games sounds` plays every effect with its meaning and then
-  each game's music.
+  each game's music and background sound.
 
 ## Keyboard and screen readers
 

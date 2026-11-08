@@ -99,6 +99,7 @@ pub fn map_key(key: KeyEvent) -> Key {
 fn restore() {
     // the music player is stopped on every way out, so none is left playing behind the shell
     crate::music::stop();
+    crate::background::stop();
     if ACTIVE.swap(false, Ordering::SeqCst) {
         let mut out = io::stdout();
         let _ = execute!(

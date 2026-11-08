@@ -1,6 +1,7 @@
 //! Zacess Games: fourteen small original games for the terminal in the Zacess themes.
 
 mod app;
+mod background;
 mod game;
 mod games;
 mod keyboard;
@@ -43,7 +44,8 @@ Usage:
                                slipstream, array-guard, heatsink, touch-typing
                                or learn-to-code (a short start is enough)
   zacess-games list            every game with its best score
-  zacess-games sounds [game]   plays every effect, then each game's music
+  zacess-games sounds [game]   plays every effect, then each game's music and
+                               background sound
   zacess-games snap [game|all] [--out DIR] [--theme NAME|all]
                                SVG stills of the games
   zacess-games snap [game|all] --frames N [--fps F] [--out DIR]
@@ -60,6 +62,10 @@ Options:
   --volume N          effects volume from 0 to 100 (also ZACESS_VOLUME)
   --no-music          start with the music off
   --music-volume N    music volume from 0 to 100 (also ZACESS_MUSIC_VOLUME)
+  --background        a quiet background sound that suits each game, such as rain or
+                      a machine room (also ZACESS_AMBIENT=1); off unless turned on
+  --no-background     no background sound, whatever was saved
+  --background-volume N  its volume from 0 to 100 (default 15)
   --seed N            a fixed seed, for the same game twice
   --colour DEPTH      truecolour or 256
   --basic             plain characters for fonts without geometric shapes
@@ -71,10 +77,10 @@ Options:
                       built-in one
   --version, --help
 
-Effects start at volume 35 and music at 20; changes are remembered. In most
-games Space pauses, ? shows how to play, + and - set the effects, [ and ] the
-music and 0 mutes. The typing games pause with Esc and show help with F1.
-Ctrl+C always quits.";
+Effects start at volume 35 and music at 20, with the background sound off;
+changes are remembered. In most games Space pauses, ? shows how to play, + and -
+set the effects, [ and ] the music, { and } the background sound and 0 mutes.
+The typing games pause with Esc and show help with F1. Ctrl+C always quits.";
 
 struct Args {
     command: Option<String>,
@@ -85,6 +91,8 @@ struct Args {
     volume: Option<u8>,
     no_music: bool,
     music_volume: Option<u8>,
+    background: Option<bool>,
+    background_volume: Option<u8>,
     seed: Option<u64>,
     colour: Option<ColourDepth>,
     basic: bool,
@@ -107,6 +115,8 @@ fn parse_args(raw: Vec<String>) -> Result<Args, String> {
         volume: None,
         no_music: false,
         music_volume: None,
+        background: None,
+        background_volume: None,
         seed: None,
         colour: None,
         basic: false,
@@ -126,6 +136,15 @@ fn parse_args(raw: Vec<String>) -> Result<Args, String> {
             "--reduced-motion" => a.reduced = true,
             "--no-sound" => a.no_sound = true,
             "--no-music" => a.no_music = true,
+            "--background" => a.background = Some(true),
+            "--no-background" => a.background = Some(false),
+            "--background-volume" => {
+                let v = value("--background-volume")?;
+                a.background_volume =
+                    Some(zacess_scenes::sound::parse_volume(&v).ok_or_else(|| {
+                        format!("--background-volume takes 0 to 100, not \"{v}\"")
+                    })?);
+            }
             "--music-volume" => {
                 let v = value("--music-volume")?;
                 a.music_volume = Some(
@@ -436,6 +455,8 @@ fn sound_from(args: &Args, scores: &Scores) -> Sound {
             volume: args.volume,
             no_music: args.no_music,
             music_volume: args.music_volume,
+            background: args.background,
+            background_volume: args.background_volume,
         },
         scores,
     )
@@ -471,7 +492,7 @@ fn sounds(args: &Args) -> Result<(), String> {
         "Music at {}%, eight seconds of each:",
         sound.music_volume.max(1)
     );
-    for info in wanted {
+    for info in &wanted {
         let m = music::mood(info.id);
         println!("  {:<14} {:.0} beats a minute", info.name, m.tempo);
         let file = music::ensure_file(&sound::cache_dir(), info.id, sound.music_volume.max(1))
@@ -487,6 +508,18 @@ fn sounds(args: &Args) -> Result<(), String> {
             let _ = child.kill();
             let _ = child.wait();
         }
+    }
+    let volume = sound.background_volume.max(1);
+    println!("Background sound at {volume}%, six seconds of each:");
+    for info in &wanted {
+        let ambience = background::for_game(info.id);
+        println!(
+            "  {:<14} {} ({})",
+            info.name,
+            ambience.name(),
+            ambience.summary()
+        );
+        zacess_scenes::ambient::preview(ambience, volume, std::time::Duration::from_secs(6))?;
     }
     Ok(())
 }
